@@ -549,7 +549,7 @@ onSnapshot(STATE_DOC, (snap)=>{
 
 function defaultAccount(name, type){
   if(type === 'cafeteria'){
-    return { id: uid(), name, type, products:[], purchases:[], sales:[], cafExpenses:[] };
+    return { id: uid(), name, type, products:[], purchases:[], sales:[], cafExpenses:[], cafPayments:[] };
   }
   if(type === 'installment'){
     return { id: uid(), name, type, customers:[], suppliers:[], deals:[], payments:[] };
@@ -560,6 +560,9 @@ function defaultAccount(name, type){
   return { id: uid(), name, type:'general', income:[], expense:[], salary:[] };
 }
 function normalizeAccount(acc){
+  if(acc.type === 'cafeteria'){
+    if(!acc.cafPayments) acc.cafPayments = [];
+  }
   if(acc.type === 'installment'){
     if(!acc.customers) acc.customers = [];
     if(!acc.suppliers) acc.suppliers = [];
@@ -984,6 +987,7 @@ function renderCafeteria(acc){
       <button class="action-btn blue"   data-panel="panel-purchase">📦 شراء بضاعة</button>
       <button class="action-btn green"  data-panel="panel-sale">🛒 بيع بضاعة</button>
       <button class="action-btn red"    data-panel="panel-cafexp">💸 مصروف</button>
+      <button class="action-btn yellow" data-panel="panel-cafpay">💵 سداد من عميل</button>
     </div>
 
     <div class="action-panel" id="panel-purchase">
@@ -1016,6 +1020,36 @@ function renderCafeteria(acc){
         <button id="addCafExpBtn" style="background:var(--c-red)">✔ حفظ</button>
       </div>
     </div>
+    <div class="action-panel" id="panel-cafpay">
+      <div class="action-panel-inner">
+        <input type="date" id="cafPayDate" class="date-input" value="${todayStr()}">
+        <input type="text" id="cafPayCustomer" placeholder="اسم العميل" list="cafCustList">
+        <datalist id="cafCustList">${[...new Set(acc.sales.filter(s=>s.customer).map(s=>s.customer))].map(c=>`<option value="${escapeHtml(c)}">`).join('')}</datalist>
+        <input type="number" id="cafPayAmount" placeholder="المبلغ المدفوع" step="0.01">
+        <button id="addCafPayBtn" style="background:var(--c-yellow)">✔ تسجيل</button>
+      </div>
+    </div>
+
+    ${(()=>{
+      const custNames = [...new Set(acc.sales.filter(s=>s.customer).map(s=>s.customer))];
+      if(custNames.length === 0) return '';
+      const cards = custNames.map(name=>{
+        const totalSales = acc.sales.filter(s=>s.customer===name).reduce((s,x)=>s+Number(x.total||0),0);
+        const totalPaid = acc.cafPayments.filter(p=>p.customer===name).reduce((s,x)=>s+Number(x.amount||0),0);
+        const remaining = Math.max(0, totalSales - totalPaid);
+        return `
+          <div class="balance-card ${remaining>0?'owed':'clear'}">
+            <div class="balance-name">👤 ${escapeHtml(name)}</div>
+            <div class="balance-row"><span>إجمالي المشتريات:</span><span class="amt neg">${fmt(totalSales)}</span></div>
+            <div class="balance-row"><span>المدفوع:</span><span class="amt pos">${fmt(totalPaid)}</span></div>
+            <div class="balance-row big">
+              <span>${remaining>0?'الرصيد المتبقي:':'الحالة:'}</span>
+              <span class="${remaining>0?'amt neg':'amt pos'}">${remaining>0?fmt(remaining):'✅ مسدّد'}</span>
+            </div>
+          </div>`;
+      }).join('');
+      return `<div class="balances-title">👤 أرصدة العملاء</div><div class="balances-grid" style="margin-bottom:20px;">${cards}</div>`;
+    })()}
 
     <div class="section">
       <div class="section-head"><div class="title"><span class="dot stock"></span>المخزون الحالي</div><div class="total">${fmt(t.stockValue)}</div></div>
@@ -1064,6 +1098,24 @@ function renderCafeteria(acc){
         </tbody>
       </table>
     </div>
+
+    ${acc.cafPayments.length===0?'':`
+    <div class="section sale-section">
+      <div class="section-head">
+        <div class="title"><span class="dot sale"></span>سجل مدفوعات العملاء</div>
+        <div class="total">${fmt(acc.cafPayments.reduce((s,p)=>s+Number(p.amount||0),0))}</div>
+      </div>
+      <table>
+        <thead><tr><th>التاريخ</th><th>العميل</th><th>المبلغ المدفوع</th><th></th></tr></thead>
+        <tbody>
+          ${[...acc.cafPayments].sort((a,b)=>(b.date||'').localeCompare(a.date||'')).map(p=>`
+            <tr><td class="date-cell">${fmtDate(p.date)}</td><td><b>${escapeHtml(p.customer)}</b></td>
+            <td class="amt pos">${fmt(p.amount)}</td>
+            <td><button class="del-btn" data-del-cafpay="${p.id}">✕</button></td></tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>`}
   `;
 }
 
@@ -1112,6 +1164,19 @@ function bindCafeteria(){
     acc.cafExpenses.push({id:uid(),date,desc,kind,amount});
     await saveState(); render();
   });
+
+  document.getElementById('addCafPayBtn').addEventListener('click', async ()=>{
+    const date=document.getElementById('cafPayDate').value||todayStr();
+    const customer=document.getElementById('cafPayCustomer').value.trim();
+    const amount=parseFloat(document.getElementById('cafPayAmount').value);
+    if(!customer||isNaN(amount)||amount<=0) return;
+    acc.cafPayments.push({id:uid(),date,customer,amount});
+    await saveState(); render();
+  });
+  document.querySelectorAll('[data-del-cafpay]').forEach(btn=>btn.addEventListener('click',async()=>{
+    acc.cafPayments=acc.cafPayments.filter(x=>x.id!==btn.dataset.delCafpay);
+    await saveState(); render();
+  }));
 
   document.querySelectorAll('[data-del-purchase]').forEach(btn=>btn.addEventListener('click',async()=>{
     const p=acc.purchases.find(x=>x.id===btn.dataset.delPurchase);
