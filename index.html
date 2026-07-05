@@ -412,6 +412,36 @@
     border-color:transparent;color:#fff;
   }
 
+  /* ── Purchase cart (multi-item receipt) ── */
+  .purchase-cart-shell{
+    background:#f8fafc;border-radius:12px;overflow:hidden;
+  }
+  .purchase-add-row{
+    display:flex;gap:8px;flex-wrap:wrap;align-items:center;
+    padding:14px 16px;border-bottom:1px solid var(--line);background:#fff;
+  }
+  .purchase-add-row input{
+    flex:1;min-width:100px;border:1.5px solid var(--line);border-radius:8px;
+    padding:9px 11px;font-family:inherit;font-size:13px;background:#fff;
+  }
+  .purchase-add-row input:focus{outline:none;border-color:var(--c-blue);}
+  .purchase-add-row .date-input{max-width:135px;flex:0 0 135px;}
+  .purchase-cart-items{min-height:50px;padding:8px 16px;}
+  .purchase-cart-row{
+    display:flex;align-items:center;gap:8px;padding:9px 0;
+    border-bottom:1px solid #f1f4f8;font-size:13px;
+  }
+  .purchase-cart-row:last-child{border-bottom:none;}
+  .purch-name{flex:1;font-weight:700;}
+  .purch-detail{color:var(--ink-soft);font-size:12px;white-space:nowrap;}
+  .purch-total{font-weight:700;color:var(--c-blue);white-space:nowrap;}
+  .purchase-empty{color:var(--ink-soft);font-size:13px;padding:16px 0;text-align:center;}
+  .purchase-cart-footer{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:14px 16px;background:#fff;border-top:2px solid var(--line);flex-wrap:wrap;
+  }
+  .purchase-cart-total{display:flex;align-items:center;gap:10px;font-weight:700;font-size:14px;}
+
   /* ── Reports page ── */
   .reports-section-title{
     font-weight:800;font-size:15px;color:var(--ink);
@@ -1205,15 +1235,28 @@ function renderCafeteria(acc){
       <button class="action-btn green"  data-panel="panel-sellprice">💲 تسعير المنتجات</button>
     </div>
 
-    <div class="action-panel" id="panel-purchase">
-      <div class="action-panel-inner">
-        <input type="date" id="purchaseDate" class="date-input" value="${todayStr()}">
-        <input type="text" id="purchaseProductName" placeholder="اسم البضاعة" list="productList">
-        <datalist id="productList">${acc.products.map(p=>`<option value="${escapeHtml(p.name)}">`).join('')}</datalist>
-        <input type="text" id="purchaseSupplier" placeholder="المورد (اختياري)">
-        <input type="number" id="purchaseQty" placeholder="الكمية" step="0.01">
-        <input type="number" id="purchaseUnitCost" placeholder="سعر الشراء للوحدة" step="0.01">
-        <button id="addPurchaseBtn" style="background:var(--c-blue)">✔ حفظ</button>
+    <div class="action-panel" id="panel-purchase" style="max-height:none;padding:0;">
+      <div class="purchase-cart-shell">
+        <!-- إضافة بند -->
+        <div class="purchase-add-row">
+          <input type="date" id="purchaseDate" class="date-input" value="${todayStr()}">
+          <input type="text" id="purchaseProductName" placeholder="اسم البضاعة" list="productList" autocomplete="off">
+          <datalist id="productList">${acc.products.map(p=>`<option value="${escapeHtml(p.name)}">`).join('')}</datalist>
+          <input type="text" id="purchaseSupplier" placeholder="المورد (اختياري)">
+          <input type="number" id="purchaseQty" placeholder="الكمية" step="0.01" min="0.01">
+          <input type="number" id="purchaseUnitCost" placeholder="سعر الشراء للوحدة" step="0.01">
+          <button id="addPurchaseRowBtn" style="background:var(--c-blue);white-space:nowrap;">➕ إضافة للقائمة</button>
+        </div>
+        <!-- قائمة البنود المضافة -->
+        <div id="purchaseCartItems" class="purchase-cart-items"></div>
+        <!-- إجمالي وحفظ -->
+        <div class="purchase-cart-footer">
+          <div class="purchase-cart-total">
+            <span>إجمالي الفاتورة:</span>
+            <span id="purchaseTotalDisplay" class="pos-total-val" style="font-size:18px;">0</span>
+          </div>
+          <button id="savePurchaseBtn" style="background:var(--c-blue);border:none;border-radius:9px;padding:11px 24px;color:#fff;font-weight:800;font-size:14px;cursor:pointer;font-family:inherit;">✔ حفظ الاستلام بالكامل</button>
+        </div>
       </div>
     </div>
     <div class="action-panel" id="panel-cafexp">
@@ -1418,22 +1461,74 @@ function bindCafeteria(){
     });
   }
 
-  // ── استلام بضاعة ──
-  document.getElementById('addPurchaseBtn').addEventListener('click', async ()=>{
-    const date=document.getElementById('purchaseDate').value||todayStr();
-    const name=document.getElementById('purchaseProductName').value.trim();
-    const supplier=document.getElementById('purchaseSupplier').value.trim();
-    const qty=parseFloat(document.getElementById('purchaseQty').value);
-    const unitCost=parseFloat(document.getElementById('purchaseUnitCost').value);
-    if(!name||isNaN(qty)||qty<=0||isNaN(unitCost)||unitCost<0) return;
-    let product=acc.products.find(p=>p.name.trim()===name);
-    if(!product){ product={id:uid(),name,qty:0,avgCost:0,sellPrice:0}; acc.products.push(product); }
-    const newQty=product.qty+qty;
-    product.avgCost=newQty>0?((product.qty*product.avgCost)+(qty*unitCost))/newQty:unitCost;
-    product.qty=newQty;
-    acc.purchases.push({id:uid(),date,productId:product.id,productName:product.name,supplier,qty,unitCost,total:qty*unitCost});
+  // ── استلام بضاعة (قائمة متعددة) ──
+  let purchaseCart = [];
+  function renderPurchaseCart(){
+    const container = document.getElementById('purchaseCartItems');
+    const totalEl   = document.getElementById('purchaseTotalDisplay');
+    if(!container) return;
+    if(purchaseCart.length===0){
+      container.innerHTML = `<div class="purchase-empty">لم تضف أي بند بعد — أضف من الأعلى</div>`;
+      if(totalEl) totalEl.textContent = '0';
+      return;
+    }
+    let total = 0;
+    container.innerHTML = purchaseCart.map((item,i)=>{
+      const lineTotal = item.qty * item.unitCost;
+      total += lineTotal;
+      return `<div class="purchase-cart-row">
+        <span class="purch-name">${escapeHtml(item.name)}</span>
+        <span class="purch-detail">${escapeHtml(item.supplier||'—')}</span>
+        <span class="purch-detail">${fmt(item.qty)} × ${fmt(item.unitCost)}</span>
+        <span class="purch-total">${fmt(lineTotal)}</span>
+        <button class="del-btn" data-del-row="${i}">✕</button>
+      </div>`;
+    }).join('');
+    if(totalEl) totalEl.textContent = fmt(total);
+    container.querySelectorAll('[data-del-row]').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        purchaseCart.splice(parseInt(btn.dataset.delRow),1);
+        renderPurchaseCart();
+      });
+    });
+  }
+
+  document.getElementById('addPurchaseRowBtn').addEventListener('click', ()=>{
+    const name     = document.getElementById('purchaseProductName').value.trim();
+    const supplier = document.getElementById('purchaseSupplier').value.trim();
+    const qty      = parseFloat(document.getElementById('purchaseQty').value);
+    const unitCost = parseFloat(document.getElementById('purchaseUnitCost').value);
+    if(!name || isNaN(qty) || qty<=0 || isNaN(unitCost) || unitCost<0) return;
+    purchaseCart.push({name, supplier, qty, unitCost});
+    document.getElementById('purchaseProductName').value = '';
+    document.getElementById('purchaseQty').value = '';
+    document.getElementById('purchaseUnitCost').value = '';
+    document.getElementById('purchaseProductName').focus();
+    renderPurchaseCart();
+  });
+
+  // Enter في حقل السعر يضيف مباشرة
+  document.getElementById('purchaseUnitCost').addEventListener('keydown', e=>{
+    if(e.key==='Enter') document.getElementById('addPurchaseRowBtn').click();
+  });
+
+  document.getElementById('savePurchaseBtn').addEventListener('click', async ()=>{
+    if(purchaseCart.length===0){ alert('أضف بندًا واحدًا على الأقل'); return; }
+    const date = document.getElementById('purchaseDate').value || todayStr();
+    for(const item of purchaseCart){
+      let product = acc.products.find(p=>p.name.trim()===item.name);
+      if(!product){ product={id:uid(),name:item.name,qty:0,avgCost:0,sellPrice:0}; acc.products.push(product); }
+      const newQty = product.qty + item.qty;
+      product.avgCost = newQty>0 ? ((product.qty*product.avgCost)+(item.qty*item.unitCost))/newQty : item.unitCost;
+      product.qty = newQty;
+      acc.purchases.push({id:uid(), date, productId:product.id, productName:product.name,
+        supplier:item.supplier, qty:item.qty, unitCost:item.unitCost, total:item.qty*item.unitCost});
+    }
+    purchaseCart = [];
     await saveState(); render();
   });
+
+  renderPurchaseCart();
 
   document.getElementById('addCafExpBtn').addEventListener('click', async ()=>{
     const date=document.getElementById('cafExpDate').value||todayStr();
