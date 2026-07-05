@@ -242,7 +242,7 @@
   .btn-outline.monthly{color:var(--c-yellow);border-color:#fde68a;}
 
   .loading{text-align:center;padding:60px;color:var(--ink-soft);}
-  .date-cell{color:var(--ink-soft);font-size:12px;white-space:nowrap;}
+  .date-cell{color:var(--ink-soft);font-size:12px;white-space:nowrap;min-width:130px;}
 
   /* people grid */
   .people-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
@@ -277,6 +277,33 @@
   .balance-row.big{font-weight:800;font-size:14px;margin-top:6px;padding-top:6px;border-top:2px solid var(--line);border-bottom:none;}
   .balance-empty{color:var(--ink-soft);font-size:13px;padding:10px 4px;}
 
+  /* ── Filter bar ── */
+  .filter-bar{
+    display:flex;gap:6px;flex-wrap:wrap;padding:10px 18px;border-bottom:1px solid var(--line);
+    background:#fafbfc;
+  }
+  .filter-btn{
+    background:#fff;border:1.5px solid var(--line);border-radius:20px;
+    padding:5px 14px;font-family:inherit;font-size:12px;font-weight:700;
+    cursor:pointer;color:var(--ink-soft);transition:.12s;
+  }
+  .filter-btn:hover{border-color:var(--sidebar-accent);color:var(--sidebar-accent);}
+  .filter-btn.active{background:var(--sidebar-bg);color:#fff;border-color:var(--sidebar-bg);}
+  .filter-count{
+    background:rgba(0,0,0,.1);border-radius:20px;padding:1px 6px;
+    font-size:10px;margin-right:3px;
+  }
+  .filter-btn.active .filter-count{background:rgba(255,255,255,.2);}
+  .filter-total{
+    display:block;font-size:10px;opacity:.75;margin-top:1px;font-weight:600;
+  }
+  .cat-tag{
+    font-size:10.5px;padding:2px 9px;border-radius:20px;font-weight:700;
+  }
+  .cat-tag.cat-exp{background:#fee2e2;color:var(--c-red);}
+  .cat-tag.cat-sal{background:#fef3c7;color:var(--c-yellow);}
+  .cat-tag.cat-adv{background:#ede9fe;color:#7c3aed;}
+
   /* ── Compact stats bar ── */
   .stats-bar{
     display:flex;align-items:center;flex-wrap:wrap;gap:0;
@@ -292,6 +319,97 @@
   @media(max-width:500px){
     .stat-item{padding:0 10px;}
     .stat-val{font-size:14px;}
+  }
+
+  /* ── POS / Cashier ── */
+  .pos-shell{
+    display:grid;grid-template-columns:1fr 340px;gap:16px;margin-bottom:20px;
+    align-items:start;
+  }
+  @media(max-width:720px){ .pos-shell{grid-template-columns:1fr;} }
+  .pos-section-title{font-weight:800;font-size:13px;color:var(--ink-soft);margin-bottom:10px;text-transform:uppercase;letter-spacing:.4px;}
+  .pos-products{background:var(--paper);border-radius:14px;padding:16px;border:1px solid var(--line);box-shadow:var(--shadow);}
+  .pos-product-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;}
+  .pos-product-btn{
+    background:#f8fafc;border:1.5px solid var(--line);border-radius:11px;
+    padding:12px 8px;cursor:pointer;font-family:inherit;text-align:center;
+    transition:.12s;display:flex;flex-direction:column;gap:3px;
+  }
+  .pos-product-btn:hover{background:var(--primary-light);border-color:var(--sidebar-accent);transform:translateY(-2px);}
+  .pos-product-btn:active{transform:scale(.96);}
+  .pos-prod-name{font-size:13px;font-weight:700;color:var(--ink);}
+  .pos-prod-price{font-size:15px;font-weight:800;color:var(--c-green);}
+  .pos-prod-qty{font-size:10px;color:var(--ink-soft);}
+  .pos-empty{color:var(--ink-soft);font-size:13px;padding:12px 0;}
+
+  .pos-bill{
+    background:var(--sidebar-bg);border-radius:14px;padding:16px;
+    color:#fff;position:sticky;top:70px;
+  }
+  .pos-bill .pos-section-title{color:rgba(255,255,255,.6);}
+  .pos-bill-customer input,.pos-bill-date input{
+    width:100%;border:1px solid rgba(255,255,255,.15);border-radius:9px;
+    padding:9px 12px;font-family:inherit;font-size:13px;
+    background:rgba(255,255,255,.1);color:#fff;margin-bottom:8px;
+  }
+  .pos-bill-customer input::placeholder,.pos-bill-date input::placeholder{color:rgba(255,255,255,.45);}
+  .pos-cart-items{min-height:60px;margin-bottom:12px;}
+  .pos-cart-empty{color:rgba(255,255,255,.4);font-size:13px;padding:16px 0;text-align:center;}
+  .pos-cart-row{
+    display:flex;align-items:center;gap:6px;padding:8px 0;
+    border-bottom:1px solid rgba(255,255,255,.08);
+  }
+  .pos-cart-name{flex:1;font-size:13px;font-weight:600;}
+  .pos-cart-controls{display:flex;align-items:center;gap:5px;}
+  .pos-qty-btn{
+    width:24px;height:24px;border-radius:6px;border:none;cursor:pointer;
+    background:rgba(255,255,255,.15);color:#fff;font-size:14px;font-weight:700;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .pos-qty-btn:hover{background:rgba(255,255,255,.25);}
+  .pos-cart-qty{font-size:14px;font-weight:700;min-width:22px;text-align:center;}
+  .pos-cart-price{font-size:13px;font-weight:700;color:#86efac;white-space:nowrap;}
+  .pos-cart-del{background:none;border:none;color:rgba(255,255,255,.4);cursor:pointer;font-size:14px;padding:2px;}
+  .pos-cart-del:hover{color:#f87171;}
+  .pos-price-edit{
+    display:flex;align-items:center;gap:8px;padding:4px 0 8px;
+    font-size:11.5px;color:rgba(255,255,255,.5);border-bottom:1px solid rgba(255,255,255,.06);
+  }
+  .pos-price-edit input{
+    width:90px;border:1px solid rgba(255,255,255,.15);border-radius:7px;
+    padding:5px 8px;background:rgba(255,255,255,.1);color:#fff;font-size:12px;font-family:inherit;
+  }
+  .pos-bill-total{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:12px 0;border-top:1.5px solid rgba(255,255,255,.15);margin-top:4px;
+    font-weight:700;font-size:15px;
+  }
+  .pos-total-val{font-size:22px;font-weight:900;color:#86efac;}
+  .pos-checkout-btn{
+    width:100%;background:linear-gradient(135deg,#16a34a,#22c55e);
+    border:none;border-radius:10px;padding:13px;font-weight:800;font-size:15px;
+    cursor:pointer;color:#fff;font-family:inherit;margin-top:4px;
+    box-shadow:0 4px 12px rgba(22,163,74,.35);transition:.15s;
+  }
+  .pos-checkout-btn:hover{filter:brightness(1.08);transform:translateY(-1px);}
+  .pos-checkout-btn:active{transform:scale(.98);}
+
+  .pos-pay-type{
+    display:flex;gap:8px;margin-bottom:10px;
+  }
+  .pos-pay-btn{
+    flex:1;padding:9px;border:1.5px solid rgba(255,255,255,.2);border-radius:9px;
+    background:rgba(255,255,255,.08);color:rgba(255,255,255,.7);
+    font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;transition:.15s;
+  }
+  .pos-pay-btn:hover{background:rgba(255,255,255,.15);}
+  .pos-pay-btn.active[data-type="cash"]{
+    background:linear-gradient(135deg,#16a34a,#22c55e);
+    border-color:transparent;color:#fff;
+  }
+  .pos-pay-btn.active[data-type="credit"]{
+    background:linear-gradient(135deg,#d97706,#f59e0b);
+    border-color:transparent;color:#fff;
   }
 
   /* ── Reports page ── */
@@ -473,7 +591,13 @@ let isSavingLocally = false; // prevents our own save from triggering a redundan
 function fmt(n){ return new Intl.NumberFormat('ar-EG', {minimumFractionDigits:0, maximumFractionDigits:2}).format(n || 0); }
 function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 function todayStr(){ return new Date().toISOString().slice(0,10); }
-function fmtDate(d){ if(!d) return '—'; const [y,m,day] = d.split('-'); return `${day}/${m}/${y}`; }
+function fmtDate(d){
+  if(!d) return '—';
+  const [y,m,day] = d.split('-');
+  const dateObj = new Date(`${y}-${m}-${day}T00:00:00`);
+  const dayName = dateObj.toLocaleDateString('ar-EG', {weekday:'long'});
+  return `${dayName} ${day}/${m}/${y}`;
+}
 function monthLabel(ym){
   const names = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
   const [y,m] = ym.split('-');
@@ -598,10 +722,16 @@ function loanStatus(acc, loan){
 
 function calcTotalsGeneral(acc){
   const sum = arr => arr.reduce((s,x)=>s+Number(x.amount||0),0);
-  const income = sum(acc.income), expense = sum(acc.expense), salary = sum(acc.salary);
+  const income = sum(acc.income);
+  // دمج المصروفات + المرتبات + السلف في بند واحد
+  const allExpenses = [
+    ...acc.expense.map(x=>({...x, cat: x.cat||'مصروف'})),
+    ...acc.salary.map(x=>({...x, cat:'مرتب', amount: Number(x.amount||0)})),
+  ];
+  const expense = allExpenses.reduce((s,x)=>s+Number(x.amount||0),0);
+  const salaryTotal = sum(acc.salary);
   const advances = acc.salary.reduce((s,x)=>s+Number(x.advance||0),0);
-  const netSalaryPaid = salary - advances;
-  return {income, expense, salary, advances, netSalaryPaid, net: income-expense-salary};
+  return {income, expense, salaryTotal, advances, net: income-expense, allExpenses};
 }
 function calcTotalsCafeteria(acc){
   const salesRevenue = acc.sales.reduce((s,x)=>s+Number(x.total||0),0);
@@ -841,24 +971,35 @@ function bindActionBar(){
 /* ---------- General account ---------- */
 function renderGeneral(acc){
   const t = calcTotalsGeneral(acc);
-  const incSorted  = [...acc.income ].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
-  const expSorted  = [...acc.expense].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
-  const salSorted  = [...acc.salary ].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  const incSorted = [...acc.income].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+
+  const allExpRows = [
+    ...acc.expense.map(x=>({...x, cat: x.cat||'مصروف', src:'expense'})),
+    ...acc.salary.map(x=>({...x, cat: x.cat||'مرتب', src:'salary'})),
+  ].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+
+  // الفلاتر تتولد تلقائيًا من الأنواع المضافة فعلًا
+  const uniqueCats = ['الكل', ...new Set(allExpRows.map(x=>x.cat))];
+  const activeFilter = acc._expFilter && uniqueCats.includes(acc._expFilter) ? acc._expFilter : 'الكل';
+  const filtered = activeFilter==='الكل' ? allExpRows : allExpRows.filter(x=>x.cat===activeFilter);
+  const totalFiltered = filtered.reduce((s,x)=>s+Number(x.amount||0),0);
+  // الأنواع السابقة للـ datalist
+  const prevCats = [...new Set(allExpRows.map(x=>x.cat))];
+
   return `
     <div class="stats-bar">
       <div class="stat-item"><span class="stat-lbl">الإيرادات</span><span class="stat-val pos">${fmt(t.income)}</span></div>
       <div class="stat-sep"></div>
-      <div class="stat-item"><span class="stat-lbl">المصروفات</span><span class="stat-val neg">${fmt(t.expense)}</span></div>
+      <div class="stat-item"><span class="stat-lbl">إجمالي المصاريف</span><span class="stat-val neg">${fmt(t.expense)}</span></div>
       <div class="stat-sep"></div>
-      <div class="stat-item"><span class="stat-lbl">المرتبات</span><span class="stat-val" style="color:var(--c-yellow)">${fmt(t.salary)}</span></div>
+      <div class="stat-item"><span class="stat-lbl">المرتبات</span><span class="stat-val" style="color:var(--c-yellow)">${fmt(t.salaryTotal)}</span></div>
       <div class="stat-sep"></div>
       <div class="stat-item"><span class="stat-lbl">${t.net>=0?'صافي الربح':'صافي الخسارة'}</span><span class="stat-val ${t.net>=0?'pos':'neg'}">${fmt(Math.abs(t.net))}</span></div>
     </div>
 
     <div class="action-bar">
       <button class="action-btn green" data-panel="panel-income">➕ إيراد جديد</button>
-      <button class="action-btn red"   data-panel="panel-expense">➕ مصروف جديد</button>
-      <button class="action-btn yellow" data-panel="panel-salary">➕ مرتب / سلفة</button>
+      <button class="action-btn red"   data-panel="panel-expense">➕ مصروف / مرتب / سلفة</button>
     </div>
 
     <div class="action-panel" id="panel-income">
@@ -872,18 +1013,11 @@ function renderGeneral(acc){
     <div class="action-panel" id="panel-expense">
       <div class="action-panel-inner">
         <input type="date" id="expDate" class="date-input" value="${todayStr()}">
+        <input type="text" id="expCat" placeholder="نوع المصروف (مثال: مرتب، كهرباء...)" list="catDatalist" autocomplete="off">
+        <datalist id="catDatalist">${prevCats.map(c=>`<option value="${escapeHtml(c)}">`).join('')}</datalist>
         <input type="text" id="expDesc" placeholder="البيان / الوصف">
         <input type="number" id="expAmount" placeholder="المبلغ" step="0.01">
         <button id="addExpBtn" style="background:var(--c-red)">✔ حفظ</button>
-      </div>
-    </div>
-    <div class="action-panel" id="panel-salary">
-      <div class="action-panel-inner">
-        <input type="date" id="salDate" class="date-input" value="${todayStr()}">
-        <input type="text" id="salDesc" placeholder="اسم الموظف">
-        <input type="number" id="salAmount" placeholder="المرتب الإجمالي" step="0.01">
-        <input type="number" id="salAdvance" placeholder="السلفة (اختياري)" step="0.01">
-        <button id="addSalBtn" style="background:var(--c-yellow)">✔ حفظ</button>
       </div>
     </div>
 
@@ -892,41 +1026,58 @@ function renderGeneral(acc){
       <table>
         <thead><tr><th>التاريخ</th><th>البيان</th><th>المبلغ</th><th></th></tr></thead>
         <tbody>${incSorted.length===0?`<tr><td colspan="4" class="empty-row">لا توجد إيرادات بعد</td></tr>`:
-          incSorted.map(it=>`<tr><td class="date-cell">${fmtDate(it.date)}</td><td>${escapeHtml(it.desc)}</td>
-          <td class="amt pos">${fmt(it.amount)}</td><td><button class="del-btn" data-del-income="${it.id}">✕</button></td></tr>`).join('')}
+          incSorted.map(it=>`<tr>
+            <td class="date-cell">${fmtDate(it.date)}</td>
+            <td>${escapeHtml(it.desc)}</td>
+            <td class="amt pos">${fmt(it.amount)}</td>
+            <td><button class="del-btn" data-del-income="${it.id}">✕</button></td>
+          </tr>`).join('')}
         </tbody>
       </table>
     </div>
 
     <div class="section expense-section">
-      <div class="section-head"><div class="title"><span class="dot expense"></span>المصروفات</div><div class="total">${fmt(t.expense)}</div></div>
+      <div class="section-head">
+        <div class="title"><span class="dot expense"></span>المصاريف والمرتبات والسلف</div>
+        <div class="total">${activeFilter==='الكل'?fmt(t.expense):fmt(totalFiltered)}</div>
+      </div>
+      <div class="filter-bar">
+        ${uniqueCats.map(c=>{
+          const cnt = c==='الكل'?allExpRows.length:allExpRows.filter(x=>x.cat===c).length;
+          const tot = c==='الكل'?t.expense:allExpRows.filter(x=>x.cat===c).reduce((s,x)=>s+Number(x.amount||0),0);
+          return `<button class="filter-btn ${activeFilter===c?'active':''}" data-filter="${escapeHtml(c)}">
+            ${escapeHtml(c)} <span class="filter-count">${cnt}</span>
+            <span class="filter-total">${fmt(tot)}</span>
+          </button>`;
+        }).join('')}
+      </div>
       <table>
-        <thead><tr><th>التاريخ</th><th>البيان</th><th>المبلغ</th><th></th></tr></thead>
-        <tbody>${expSorted.length===0?`<tr><td colspan="4" class="empty-row">لا توجد مصروفات بعد</td></tr>`:
-          expSorted.map(it=>`<tr><td class="date-cell">${fmtDate(it.date)}</td><td>${escapeHtml(it.desc)}</td>
-          <td class="amt neg">${fmt(it.amount)}</td><td><button class="del-btn" data-del-expense="${it.id}">✕</button></td></tr>`).join('')}
-        </tbody>
-      </table>
-    </div>
-
-    <div class="section salary-section">
-      <div class="section-head"><div class="title"><span class="dot salary"></span>المرتبات والسلف</div><div class="total">صافي مستحق: ${fmt(t.netSalaryPaid)}</div></div>
-      <table>
-        <thead><tr><th>التاريخ</th><th>الموظف</th><th>المرتب</th><th>السلفة</th><th>صافي المستحق</th><th></th></tr></thead>
-        <tbody>${salSorted.length===0?`<tr><td colspan="6" class="empty-row">لا توجد مرتبات بعد</td></tr>`:
-          salSorted.map(it=>`<tr><td class="date-cell">${fmtDate(it.date)}</td><td><b>${escapeHtml(it.desc)}</b></td>
-          <td class="amt">${fmt(it.amount)}</td>
-          <td class="amt ${Number(it.advance)>0?'neg':''}">${fmt(it.advance||0)}</td>
-          <td class="amt pos">${fmt(Number(it.amount)-Number(it.advance||0))}</td>
-          <td><button class="del-btn" data-del-salary="${it.id}">✕</button></td></tr>`).join('')}
+        <thead><tr><th>التاريخ</th><th>النوع</th><th>البيان</th><th>المبلغ</th><th></th></tr></thead>
+        <tbody>${filtered.length===0?`<tr><td colspan="5" class="empty-row">لا توجد عناصر في هذا التصنيف</td></tr>`:
+          filtered.map(it=>`<tr>
+            <td class="date-cell">${fmtDate(it.date)}</td>
+            <td><span class="cat-tag">${escapeHtml(it.cat)}</span></td>
+            <td>${escapeHtml(it.desc)}</td>
+            <td class="amt neg">${fmt(it.amount)}</td>
+            <td><button class="del-btn" data-del-exp="${it.src}:${it.id}">✕</button></td>
+          </tr>`).join('')}
         </tbody>
       </table>
     </div>
   `;
 }
+
 function bindGeneral(){
   const acc = getActive();
   bindActionBar();
+
+  // فلاتر الأنواع
+  document.querySelectorAll('.filter-btn[data-filter]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      acc._expFilter = btn.dataset.filter;
+      render();
+    });
+  });
 
   document.getElementById('addIncBtn').addEventListener('click', async ()=>{
     const date=document.getElementById('incDate').value||todayStr();
@@ -936,42 +1087,70 @@ function bindGeneral(){
     acc.income.push({id:uid(),date,desc,amount});
     await saveState(); render();
   });
+
   document.getElementById('addExpBtn').addEventListener('click', async ()=>{
-    const date=document.getElementById('expDate').value||todayStr();
-    const desc=document.getElementById('expDesc').value.trim();
-    const amount=parseFloat(document.getElementById('expAmount').value);
-    if(!desc||isNaN(amount)) return;
-    acc.expense.push({id:uid(),date,desc,amount});
+    const date = document.getElementById('expDate').value || todayStr();
+    const catRaw = document.getElementById('expCat').value.trim();
+    const cat = catRaw || 'مصروف';
+    const desc = document.getElementById('expDesc').value.trim();
+    const amount = parseFloat(document.getElementById('expAmount').value);
+    if(!desc || isNaN(amount)) return;
+    // مرتب وسلفة تتحفظ في salary للتوافق مع الكشوف
+    if(cat === 'مرتب' || cat === 'سلفة'){
+      acc.salary.push({id:uid(), date, desc, amount, advance:0, cat});
+    } else {
+      acc.expense.push({id:uid(), date, desc, amount, cat});
+    }
+    document.getElementById('expCat').value = '';
+    document.getElementById('expDesc').value = '';
+    document.getElementById('expAmount').value = '';
     await saveState(); render();
   });
-  document.getElementById('addSalBtn').addEventListener('click', async ()=>{
-    const date=document.getElementById('salDate').value||todayStr();
-    const desc=document.getElementById('salDesc').value.trim();
-    const amount=parseFloat(document.getElementById('salAmount').value);
-    const advance=parseFloat(document.getElementById('salAdvance').value)||0;
-    if(!desc||isNaN(amount)) return;
-    if(advance>amount){alert('السلفة لا يمكن أن تكون أكبر من المرتب');return;}
-    acc.salary.push({id:uid(),date,desc,amount,advance});
-    await saveState(); render();
-  });
+
   document.querySelectorAll('[data-del-income]').forEach(b=>b.addEventListener('click',async()=>{
     acc.income=acc.income.filter(x=>x.id!==b.dataset.delIncome); await saveState(); render();
   }));
-  document.querySelectorAll('[data-del-expense]').forEach(b=>b.addEventListener('click',async()=>{
-    acc.expense=acc.expense.filter(x=>x.id!==b.dataset.delExpense); await saveState(); render();
-  }));
-  document.querySelectorAll('[data-del-salary]').forEach(b=>b.addEventListener('click',async()=>{
-    acc.salary=acc.salary.filter(x=>x.id!==b.dataset.delSalary); await saveState(); render();
+  document.querySelectorAll('[data-del-exp]').forEach(b=>b.addEventListener('click',async()=>{
+    const [src,id]=b.dataset.delExp.split(':');
+    if(src==='salary') acc.salary=acc.salary.filter(x=>x.id!==id);
+    else acc.expense=acc.expense.filter(x=>x.id!==id);
+    await saveState(); render();
   }));
 }
 
 /* ---------- Cafeteria account ---------- */
 function renderCafeteria(acc){
   const t = calcTotalsCafeteria(acc);
-  const productOptions = acc.products.map(p=>`<option value="${p.id}">${escapeHtml(p.name)} (متاح: ${fmt(p.qty)})</option>`).join('');
-  const purSorted = [...acc.purchases].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
   const salSorted = [...acc.sales].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  const purSorted = [...acc.purchases].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
   const expSorted = [...acc.cafExpenses].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+
+  /* بطاقات أرصدة العملاء */
+  const custNames = [...new Set(acc.sales.filter(s=>s.customer).map(s=>s.customer))];
+  const custCards = custNames.length===0 ? '' : custNames.map(name=>{
+    const creditSales = acc.sales.filter(s=>s.customer===name && s.payType==='credit');
+    const cashSales   = acc.sales.filter(s=>s.customer===name && s.payType!=='credit');
+    const totalCredit = creditSales.reduce((s,x)=>s+Number(x.total||0),0);
+    const totalCash   = cashSales.reduce((s,x)=>s+Number(x.total||0),0);
+    const totalPaid   = acc.cafPayments.filter(p=>p.customer===name).reduce((s,x)=>s+Number(x.amount||0),0);
+    const remaining   = Math.max(0, totalCredit - totalPaid);
+    return `<div class="balance-card ${remaining>0?'owed':'clear'}">
+      <div class="balance-name">👤 ${escapeHtml(name)}</div>
+      <div class="balance-row"><span>مبيعات نقدية:</span><span class="amt pos">${fmt(totalCash)}</span></div>
+      <div class="balance-row"><span>مبيعات آجلة:</span><span class="amt neg">${fmt(totalCredit)}</span></div>
+      <div class="balance-row"><span>المدفوع من الآجل:</span><span class="amt pos">${fmt(totalPaid)}</span></div>
+      <div class="balance-row big"><span>${remaining>0?'الرصيد المتبقي:':'الحالة:'}</span>
+        <span class="${remaining>0?'amt neg':'amt pos'}">${remaining>0?fmt(remaining):'✅ مسدّد'}</span></div>
+    </div>`;
+  }).join('');
+
+  /* منتجات الكاشير */
+  const productBtns = acc.products.filter(p=>p.qty>0).map(p=>`
+    <button class="pos-product-btn" data-pid="${p.id}">
+      <span class="pos-prod-name">${escapeHtml(p.name)}</span>
+      <span class="pos-prod-price">${fmt(p.sellPrice||0)}</span>
+      <span class="pos-prod-qty">متاح: ${fmt(p.qty)}</span>
+    </button>`).join('') || `<div class="pos-empty">لا توجد منتجات — أضف بضاعة أولًا</div>`;
 
   return `
     <div class="stats-bar">
@@ -983,11 +1162,47 @@ function renderCafeteria(acc){
       <div class="stat-sep"></div>
       <div class="stat-item"><span class="stat-lbl">${t.net>=0?'صافي الربح':'صافي الخسارة'}</span><span class="stat-val ${t.net>=0?'pos':'neg'}">${fmt(Math.abs(t.net))}</span></div>
     </div>
-    <div class="action-bar">
-      <button class="action-btn blue"   data-panel="panel-purchase">📦 شراء بضاعة</button>
-      <button class="action-btn green"  data-panel="panel-sale">🛒 بيع بضاعة</button>
+
+    <!-- ── واجهة الكاشير (POS) ── -->
+    <div class="pos-shell">
+      <!-- المنتجات -->
+      <div class="pos-products">
+        <div class="pos-section-title">🛒 اختر منتج</div>
+        <div class="pos-product-grid" id="posProductGrid">${productBtns}</div>
+      </div>
+
+      <!-- الفاتورة الحالية -->
+      <div class="pos-bill">
+        <div class="pos-section-title">🧾 الفاتورة الحالية</div>
+        <div class="pos-bill-customer">
+          <input type="text" id="posCustomer" placeholder="اسم العميل (اختياري)" autocomplete="off"
+            list="cafCustDatalist">
+          <datalist id="cafCustDatalist">${custNames.map(c=>`<option value="${escapeHtml(c)}">`).join('')}</datalist>
+        </div>
+        <div class="pos-bill-date">
+          <input type="date" id="posDate" value="${todayStr()}">
+        </div>
+        <div id="posCartItems" class="pos-cart-items">
+          <div class="pos-cart-empty">لم تختر أي منتج بعد</div>
+        </div>
+        <div class="pos-bill-total">
+          <span>الإجمالي</span>
+          <span id="posTotalDisplay" class="pos-total-val">0</span>
+        </div>
+        <div class="pos-pay-type">
+          <button class="pos-pay-btn active" id="payTypeCash" data-type="cash">💵 نقدي</button>
+          <button class="pos-pay-btn" id="payTypeCredit" data-type="credit">📋 آجل</button>
+        </div>
+        <button class="pos-checkout-btn" id="posCheckoutBtn">✔ تحصيل وحفظ الفاتورة</button>
+      </div>
+    </div>
+
+    <!-- ── أزرار الإدارة ── -->
+    <div class="action-bar" style="margin-top:20px;">
+      <button class="action-btn blue"   data-panel="panel-purchase">📦 استلام بضاعة</button>
       <button class="action-btn red"    data-panel="panel-cafexp">💸 مصروف</button>
       <button class="action-btn yellow" data-panel="panel-cafpay">💵 سداد من عميل</button>
+      <button class="action-btn green"  data-panel="panel-sellprice">💲 تسعير المنتجات</button>
     </div>
 
     <div class="action-panel" id="panel-purchase">
@@ -995,20 +1210,10 @@ function renderCafeteria(acc){
         <input type="date" id="purchaseDate" class="date-input" value="${todayStr()}">
         <input type="text" id="purchaseProductName" placeholder="اسم البضاعة" list="productList">
         <datalist id="productList">${acc.products.map(p=>`<option value="${escapeHtml(p.name)}">`).join('')}</datalist>
-        <input type="text" id="purchaseSupplier" placeholder="اسم المورد (اختياري)">
+        <input type="text" id="purchaseSupplier" placeholder="المورد (اختياري)">
         <input type="number" id="purchaseQty" placeholder="الكمية" step="0.01">
-        <input type="number" id="purchaseUnitCost" placeholder="سعر الوحدة" step="0.01">
+        <input type="number" id="purchaseUnitCost" placeholder="سعر الشراء للوحدة" step="0.01">
         <button id="addPurchaseBtn" style="background:var(--c-blue)">✔ حفظ</button>
-      </div>
-    </div>
-    <div class="action-panel" id="panel-sale">
-      <div class="action-panel-inner">
-        <input type="date" id="saleDate" class="date-input" value="${todayStr()}">
-        <select id="saleProductId"><option value="">اختر البضاعة...</option>${productOptions}</select>
-        <input type="text" id="saleCustomer" placeholder="اسم العميل (اختياري)">
-        <input type="number" id="saleQty" placeholder="الكمية" step="0.01">
-        <input type="number" id="saleUnitPrice" placeholder="سعر البيع للوحدة" step="0.01">
-        <button id="addSaleBtn" style="background:var(--c-green)">✔ حفظ</button>
       </div>
     </div>
     <div class="action-panel" id="panel-cafexp">
@@ -1023,106 +1228,197 @@ function renderCafeteria(acc){
     <div class="action-panel" id="panel-cafpay">
       <div class="action-panel-inner">
         <input type="date" id="cafPayDate" class="date-input" value="${todayStr()}">
-        <input type="text" id="cafPayCustomer" placeholder="اسم العميل" list="cafCustList">
-        <datalist id="cafCustList">${[...new Set(acc.sales.filter(s=>s.customer).map(s=>s.customer))].map(c=>`<option value="${escapeHtml(c)}">`).join('')}</datalist>
+        <input type="text" id="cafPayCustomer" placeholder="اسم العميل" list="cafCustDatalist2">
+        <datalist id="cafCustDatalist2">${custNames.map(c=>`<option value="${escapeHtml(c)}">`).join('')}</datalist>
         <input type="number" id="cafPayAmount" placeholder="المبلغ المدفوع" step="0.01">
         <button id="addCafPayBtn" style="background:var(--c-yellow)">✔ تسجيل</button>
       </div>
     </div>
+    <div class="action-panel" id="panel-sellprice">
+      <div class="action-panel-inner" style="flex-direction:column;align-items:stretch;gap:8px;">
+        <div style="font-weight:700;font-size:13px;color:var(--ink-soft);">حدّد سعر البيع لكل منتج:</div>
+        ${acc.products.map(p=>`
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="flex:1;font-weight:600;">${escapeHtml(p.name)}</span>
+            <input type="number" class="sell-price-input" data-pid="${p.id}"
+              value="${p.sellPrice||''}" placeholder="سعر البيع" step="0.01"
+              style="width:120px;border:1.5px solid var(--line);border-radius:8px;padding:7px 10px;font-family:inherit;">
+          </div>`).join('')}
+        <button id="saveSellPricesBtn" style="background:var(--c-green);border:none;border-radius:8px;padding:10px;color:#fff;font-weight:700;cursor:pointer;font-family:inherit;">✔ حفظ الأسعار</button>
+      </div>
+    </div>
 
-    ${(()=>{
-      const custNames = [...new Set(acc.sales.filter(s=>s.customer).map(s=>s.customer))];
-      if(custNames.length === 0) return '';
-      const cards = custNames.map(name=>{
-        const totalSales = acc.sales.filter(s=>s.customer===name).reduce((s,x)=>s+Number(x.total||0),0);
-        const totalPaid = acc.cafPayments.filter(p=>p.customer===name).reduce((s,x)=>s+Number(x.amount||0),0);
-        const remaining = Math.max(0, totalSales - totalPaid);
-        return `
-          <div class="balance-card ${remaining>0?'owed':'clear'}">
-            <div class="balance-name">👤 ${escapeHtml(name)}</div>
-            <div class="balance-row"><span>إجمالي المشتريات:</span><span class="amt neg">${fmt(totalSales)}</span></div>
-            <div class="balance-row"><span>المدفوع:</span><span class="amt pos">${fmt(totalPaid)}</span></div>
-            <div class="balance-row big">
-              <span>${remaining>0?'الرصيد المتبقي:':'الحالة:'}</span>
-              <span class="${remaining>0?'amt neg':'amt pos'}">${remaining>0?fmt(remaining):'✅ مسدّد'}</span>
-            </div>
-          </div>`;
-      }).join('');
-      return `<div class="balances-title">👤 أرصدة العملاء</div><div class="balances-grid" style="margin-bottom:20px;">${cards}</div>`;
-    })()}
+    ${custNames.length===0?'':`
+      <div class="balances-title">👤 أرصدة العملاء</div>
+      <div class="balances-grid" style="margin-bottom:20px;">${custCards}</div>`}
 
+    <!-- سجل المبيعات -->
+    <div class="section sale-section">
+      <div class="section-head"><div class="title"><span class="dot sale"></span>سجل المبيعات</div><div class="total">${fmt(t.salesRevenue)}</div></div>
+      <table>
+        <thead><tr><th>التاريخ</th><th>المنتج</th><th>العميل</th><th>طريقة الدفع</th><th>الكمية</th><th>سعر البيع</th><th>الإجمالي</th><th></th></tr></thead>
+        <tbody>${salSorted.length===0?`<tr><td colspan="8" class="empty-row">لا توجد مبيعات بعد</td></tr>`:
+          salSorted.map(s=>`<tr>
+            <td class="date-cell">${fmtDate(s.date)}</td>
+            <td><b>${escapeHtml(s.productName)}</b></td>
+            <td>${escapeHtml(s.customer||'—')}</td>
+            <td><span class="cat-tag" style="${s.payType==='credit'?'background:#fef3c7;color:#d97706':'background:#dcfce7;color:#16a34a'}">${s.payType==='credit'?'📋 آجل':'💵 نقدي'}</span></td>
+            <td class="amt">${fmt(s.qty)}</td>
+            <td class="amt">${fmt(s.unitPrice)}</td>
+            <td class="amt pos">${fmt(s.total)}</td>
+            <td><button class="del-btn" data-del-sale="${s.id}">✕</button></td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- سجل المشتريات -->
+    <div class="section purchase-section">
+      <div class="section-head"><div class="title"><span class="dot purchase"></span>سجل استلام البضاعة</div><div class="total">${fmt(t.purchasesTotal)}</div></div>
+      <table>
+        <thead><tr><th>التاريخ</th><th>البضاعة</th><th>المورد</th><th>الكمية</th><th>سعر الشراء</th><th>الإجمالي</th><th></th></tr></thead>
+        <tbody>${purSorted.length===0?`<tr><td colspan="7" class="empty-row">لا توجد مشتريات بعد</td></tr>`:
+          purSorted.map(p=>`<tr>
+            <td class="date-cell">${fmtDate(p.date)}</td>
+            <td><b>${escapeHtml(p.productName)}</b></td>
+            <td>${escapeHtml(p.supplier||'—')}</td>
+            <td class="amt">${fmt(p.qty)}</td>
+            <td class="amt">${fmt(p.unitCost)}</td>
+            <td class="amt">${fmt(p.total)}</td>
+            <td><button class="del-btn" data-del-purchase="${p.id}">✕</button></td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- المخزون -->
     <div class="section">
       <div class="section-head"><div class="title"><span class="dot stock"></span>المخزون الحالي</div><div class="total">${fmt(t.stockValue)}</div></div>
       <table>
-        <thead><tr><th>اسم البضاعة</th><th>الكمية المتاحة</th><th>متوسط تكلفة الوحدة</th><th>القيمة الحالية</th></tr></thead>
-        <tbody>${acc.products.length===0?`<tr><td colspan="4" class="empty-row">لا توجد بضاعة بعد</td></tr>`:
-          acc.products.map(p=>`<tr><td><b>${escapeHtml(p.name)}</b></td><td class="amt">${fmt(p.qty)}</td><td class="amt">${fmt(p.avgCost)}</td><td class="amt pos">${fmt(p.qty*p.avgCost)}</td></tr>`).join('')}
+        <thead><tr><th>المنتج</th><th>الكمية المتاحة</th><th>تكلفة الوحدة</th><th>سعر البيع</th><th>القيمة الحالية</th></tr></thead>
+        <tbody>${acc.products.length===0?`<tr><td colspan="5" class="empty-row">لا يوجد مخزون بعد</td></tr>`:
+          acc.products.map(p=>`<tr>
+            <td><b>${escapeHtml(p.name)}</b></td>
+            <td class="amt">${fmt(p.qty)}</td>
+            <td class="amt">${fmt(p.avgCost)}</td>
+            <td class="amt" style="color:var(--c-green)">${fmt(p.sellPrice||0)}</td>
+            <td class="amt pos">${fmt(p.qty*p.avgCost)}</td>
+          </tr>`).join('')}
         </tbody>
       </table>
     </div>
 
-    <div class="section purchase-section">
-      <div class="section-head"><div class="title"><span class="dot purchase"></span>مشتريات البضاعة</div><div class="total">${fmt(t.purchasesTotal)}</div></div>
-      <table>
-        <thead><tr><th>التاريخ</th><th>البضاعة</th><th>المورد</th><th>الكمية</th><th>سعر الوحدة</th><th>الإجمالي</th><th></th></tr></thead>
-        <tbody>${purSorted.length===0?`<tr><td colspan="7" class="empty-row">لا توجد مشتريات بعد</td></tr>`:
-          purSorted.map(p=>`<tr><td class="date-cell">${fmtDate(p.date)}</td><td><b>${escapeHtml(p.productName)}</b></td>
-          <td>${escapeHtml(p.supplier||'—')}</td>
-          <td class="amt">${fmt(p.qty)}</td><td class="amt">${fmt(p.unitCost)}</td><td class="amt">${fmt(p.total)}</td>
-          <td><button class="del-btn" data-del-purchase="${p.id}">✕</button></td></tr>`).join('')}
-        </tbody>
-      </table>
-    </div>
-
-    <div class="section sale-section">
-      <div class="section-head"><div class="title"><span class="dot sale"></span>المبيعات</div><div class="total">${fmt(t.salesRevenue)}</div></div>
-      <table>
-        <thead><tr><th>التاريخ</th><th>البضاعة</th><th>العميل</th><th>الكمية</th><th>سعر البيع</th><th>الإجمالي</th><th></th></tr></thead>
-        <tbody>${salSorted.length===0?`<tr><td colspan="7" class="empty-row">لا توجد مبيعات بعد</td></tr>`:
-          salSorted.map(s=>`<tr><td class="date-cell">${fmtDate(s.date)}</td><td><b>${escapeHtml(s.productName)}</b></td>
-          <td>${escapeHtml(s.customer||'—')}</td>
-          <td class="amt">${fmt(s.qty)}</td><td class="amt">${fmt(s.unitPrice)}</td><td class="amt pos">${fmt(s.total)}</td>
-          <td><button class="del-btn" data-del-sale="${s.id}">✕</button></td></tr>`).join('')}
-        </tbody>
-      </table>
-    </div>
-
+    ${expSorted.length===0?'':`
     <div class="section cafexpense-section">
-      <div class="section-head"><div class="title"><span class="dot cafexpense"></span>مصاريف الشراء أو البيع</div><div class="total">${fmt(t.expensesTotal)}</div></div>
+      <div class="section-head"><div class="title"><span class="dot cafexpense"></span>المصاريف</div><div class="total">${fmt(t.expensesTotal)}</div></div>
       <table>
         <thead><tr><th>التاريخ</th><th>البيان</th><th>النوع</th><th>المبلغ</th><th></th></tr></thead>
-        <tbody>${expSorted.length===0?`<tr><td colspan="5" class="empty-row">لا توجد مصاريف بعد</td></tr>`:
-          expSorted.map(e=>`<tr><td class="date-cell">${fmtDate(e.date)}</td><td>${escapeHtml(e.desc)}</td>
-          <td>${e.kind==='buy'?'مصروف شراء':'مصروف بيع'}</td><td class="amt neg">${fmt(e.amount)}</td>
-          <td><button class="del-btn" data-del-cafexpense="${e.id}">✕</button></td></tr>`).join('')}
+        <tbody>${expSorted.map(e=>`<tr>
+          <td class="date-cell">${fmtDate(e.date)}</td><td>${escapeHtml(e.desc)}</td>
+          <td>${e.kind==='buy'?'مصروف شراء':'مصروف بيع'}</td>
+          <td class="amt neg">${fmt(e.amount)}</td>
+          <td><button class="del-btn" data-del-cafexpense="${e.id}">✕</button></td>
+        </tr>`).join('')}
         </tbody>
       </table>
-    </div>
+    </div>`}
 
     ${acc.cafPayments.length===0?'':`
     <div class="section sale-section">
-      <div class="section-head">
-        <div class="title"><span class="dot sale"></span>سجل مدفوعات العملاء</div>
-        <div class="total">${fmt(acc.cafPayments.reduce((s,p)=>s+Number(p.amount||0),0))}</div>
-      </div>
+      <div class="section-head"><div class="title"><span class="dot sale"></span>مدفوعات العملاء</div>
+        <div class="total">${fmt(acc.cafPayments.reduce((s,p)=>s+Number(p.amount||0),0))}</div></div>
       <table>
-        <thead><tr><th>التاريخ</th><th>العميل</th><th>المبلغ المدفوع</th><th></th></tr></thead>
-        <tbody>
-          ${[...acc.cafPayments].sort((a,b)=>(b.date||'').localeCompare(a.date||'')).map(p=>`
-            <tr><td class="date-cell">${fmtDate(p.date)}</td><td><b>${escapeHtml(p.customer)}</b></td>
-            <td class="amt pos">${fmt(p.amount)}</td>
-            <td><button class="del-btn" data-del-cafpay="${p.id}">✕</button></td></tr>
-          `).join('')}
+        <thead><tr><th>التاريخ</th><th>العميل</th><th>المبلغ</th><th></th></tr></thead>
+        <tbody>${[...acc.cafPayments].sort((a,b)=>(b.date||'').localeCompare(a.date||'')).map(p=>`<tr>
+          <td class="date-cell">${fmtDate(p.date)}</td>
+          <td><b>${escapeHtml(p.customer)}</b></td>
+          <td class="amt pos">${fmt(p.amount)}</td>
+          <td><button class="del-btn" data-del-cafpay="${p.id}">✕</button></td>
+        </tr>`).join('')}
         </tbody>
       </table>
     </div>`}
   `;
 }
 
+// cart state (in-memory, not persisted - resets on navigate)
+let posCart = {};
+
 function bindCafeteria(){
   const acc = getActive();
   bindActionBar();
+  posCart = {};
+  renderCart(acc);
 
+  // ── اختيار منتج من الشبكة ──
+  document.querySelectorAll('.pos-product-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const pid = btn.dataset.pid;
+      const product = acc.products.find(p=>p.id===pid);
+      if(!product||product.qty<=0) return;
+      if(!posCart[pid]) posCart[pid] = {product, qty:0, unitPrice: product.sellPrice||product.avgCost||0};
+      if(posCart[pid].qty >= product.qty){ alert(`الكمية المتاحة: ${fmt(product.qty)} فقط`); return; }
+      posCart[pid].qty++;
+      renderCart(acc);
+    });
+  });
+
+  // ── أزرار طريقة الدفع ──
+  let posPayType = 'cash';
+  document.querySelectorAll('.pos-pay-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      posPayType = btn.dataset.type;
+      document.querySelectorAll('.pos-pay-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      const checkoutBtn = document.getElementById('posCheckoutBtn');
+      if(posPayType==='credit'){
+        checkoutBtn.textContent = '📋 تسجيل آجل';
+        checkoutBtn.style.background = 'linear-gradient(135deg,#d97706,#f59e0b)';
+      } else {
+        checkoutBtn.textContent = '✔ تحصيل وحفظ الفاتورة';
+        checkoutBtn.style.background = 'linear-gradient(135deg,#16a34a,#22c55e)';
+      }
+    });
+  });
+
+  // ── تحصيل الفاتورة ──
+  document.getElementById('posCheckoutBtn').addEventListener('click', async ()=>{
+    const items = Object.values(posCart).filter(x=>x.qty>0);
+    if(items.length===0){ alert('أضف منتجًا أولًا'); return; }
+    if(posPayType==='credit' && !document.getElementById('posCustomer').value.trim()){
+      alert('البيع الآجل يتطلب كتابة اسم العميل'); return;
+    }
+    const date = document.getElementById('posDate').value || todayStr();
+    const customer = document.getElementById('posCustomer').value.trim();
+    const payType = posPayType; // cash | credit
+    for(const item of items){
+      const product = acc.products.find(p=>p.id===item.product.id);
+      if(!product) continue;
+      if(item.qty > product.qty){ alert(`الكمية المتاحة من "${product.name}" هي ${fmt(product.qty)} فقط`); return; }
+      const cogs = item.qty * product.avgCost;
+      product.qty -= item.qty;
+      acc.sales.push({id:uid(), date, productId:product.id, productName:product.name,
+        customer, qty:item.qty, unitPrice:item.unitPrice,
+        total:item.qty*item.unitPrice, cogs, payType});
+    }
+    posCart = {};
+    await saveState(); render();
+  });
+
+  // ── تسعير المنتجات ──
+  const savePricesBtn = document.getElementById('saveSellPricesBtn');
+  if(savePricesBtn){
+    savePricesBtn.addEventListener('click', async ()=>{
+      document.querySelectorAll('.sell-price-input').forEach(inp=>{
+        const pid = inp.dataset.pid;
+        const product = acc.products.find(p=>p.id===pid);
+        if(product) product.sellPrice = parseFloat(inp.value)||0;
+      });
+      await saveState(); render();
+    });
+  }
+
+  // ── استلام بضاعة ──
   document.getElementById('addPurchaseBtn').addEventListener('click', async ()=>{
     const date=document.getElementById('purchaseDate').value||todayStr();
     const name=document.getElementById('purchaseProductName').value.trim();
@@ -1131,27 +1427,11 @@ function bindCafeteria(){
     const unitCost=parseFloat(document.getElementById('purchaseUnitCost').value);
     if(!name||isNaN(qty)||qty<=0||isNaN(unitCost)||unitCost<0) return;
     let product=acc.products.find(p=>p.name.trim()===name);
-    if(!product){ product={id:uid(),name,qty:0,avgCost:0}; acc.products.push(product); }
+    if(!product){ product={id:uid(),name,qty:0,avgCost:0,sellPrice:0}; acc.products.push(product); }
     const newQty=product.qty+qty;
     product.avgCost=newQty>0?((product.qty*product.avgCost)+(qty*unitCost))/newQty:unitCost;
     product.qty=newQty;
     acc.purchases.push({id:uid(),date,productId:product.id,productName:product.name,supplier,qty,unitCost,total:qty*unitCost});
-    await saveState(); render();
-  });
-
-  document.getElementById('addSaleBtn').addEventListener('click', async ()=>{
-    const date=document.getElementById('saleDate').value||todayStr();
-    const productId=document.getElementById('saleProductId').value;
-    const customer=document.getElementById('saleCustomer').value.trim();
-    const qty=parseFloat(document.getElementById('saleQty').value);
-    const unitPrice=parseFloat(document.getElementById('saleUnitPrice').value);
-    if(!productId||isNaN(qty)||qty<=0||isNaN(unitPrice)||unitPrice<0) return;
-    const product=acc.products.find(p=>p.id===productId);
-    if(!product) return;
-    if(qty>product.qty){alert(`الكمية المتاحة من "${product.name}" هي ${fmt(product.qty)} فقط`);return;}
-    const cogs=qty*product.avgCost;
-    product.qty-=qty;
-    acc.sales.push({id:uid(),date,productId:product.id,productName:product.name,customer,qty,unitPrice,total:qty*unitPrice,cogs});
     await saveState(); render();
   });
 
@@ -1173,23 +1453,78 @@ function bindCafeteria(){
     acc.cafPayments.push({id:uid(),date,customer,amount});
     await saveState(); render();
   });
+
   document.querySelectorAll('[data-del-cafpay]').forEach(btn=>btn.addEventListener('click',async()=>{
     acc.cafPayments=acc.cafPayments.filter(x=>x.id!==btn.dataset.delCafpay);
     await saveState(); render();
   }));
-
   document.querySelectorAll('[data-del-purchase]').forEach(btn=>btn.addEventListener('click',async()=>{
     const p=acc.purchases.find(x=>x.id===btn.dataset.delPurchase);
-    if(p){ const pr=acc.products.find(x=>x.id===p.productId); if(pr) pr.qty=Math.max(0,pr.qty-p.qty); acc.purchases=acc.purchases.filter(x=>x.id!==p.id); await saveState(); render(); }
+    if(p){ const pr=acc.products.find(x=>x.id===p.productId); if(pr) pr.qty=Math.max(0,pr.qty-p.qty);
+      acc.purchases=acc.purchases.filter(x=>x.id!==p.id); await saveState(); render(); }
   }));
   document.querySelectorAll('[data-del-sale]').forEach(btn=>btn.addEventListener('click',async()=>{
     const s=acc.sales.find(x=>x.id===btn.dataset.delSale);
-    if(s){ const pr=acc.products.find(x=>x.id===s.productId); if(pr) pr.qty+=s.qty; acc.sales=acc.sales.filter(x=>x.id!==s.id); await saveState(); render(); }
+    if(s){ const pr=acc.products.find(x=>x.id===s.productId); if(pr) pr.qty+=s.qty;
+      acc.sales=acc.sales.filter(x=>x.id!==s.id); await saveState(); render(); }
   }));
   document.querySelectorAll('[data-del-cafexpense]').forEach(btn=>btn.addEventListener('click',async()=>{
     acc.cafExpenses=acc.cafExpenses.filter(x=>x.id!==btn.dataset.delCafexpense); await saveState(); render();
   }));
 }
+
+function renderCart(acc){
+  const items = Object.values(posCart).filter(x=>x.qty>0);
+  const container = document.getElementById('posCartItems');
+  const totalEl = document.getElementById('posTotalDisplay');
+  if(!container) return;
+  if(items.length===0){
+    container.innerHTML = `<div class="pos-cart-empty">لم تختر أي منتج بعد</div>`;
+    if(totalEl) totalEl.textContent = '0';
+    return;
+  }
+  let total = 0;
+  container.innerHTML = items.map(item=>{
+    const lineTotal = item.qty * item.unitPrice;
+    total += lineTotal;
+    return `
+      <div class="pos-cart-row">
+        <span class="pos-cart-name">${escapeHtml(item.product.name)}</span>
+        <div class="pos-cart-controls">
+          <button class="pos-qty-btn" data-dec="${item.product.id}">−</button>
+          <span class="pos-cart-qty">${item.qty}</span>
+          <button class="pos-qty-btn" data-inc="${item.product.id}">+</button>
+        </div>
+        <span class="pos-cart-price">${fmt(lineTotal)}</span>
+        <button class="pos-cart-del" data-rem="${item.product.id}">✕</button>
+      </div>
+      <div class="pos-price-edit">
+        <span>سعر الوحدة:</span>
+        <input type="number" class="pos-price-input" data-pid="${item.product.id}"
+          value="${item.unitPrice}" step="0.01" min="0">
+      </div>`;
+  }).join('');
+  if(totalEl) totalEl.textContent = fmt(total);
+
+  // ربط الأزرار
+  container.querySelectorAll('[data-inc]').forEach(btn=>btn.addEventListener('click',()=>{
+    const pid=btn.dataset.inc; const product=acc.products.find(p=>p.id===pid);
+    if(posCart[pid] && product && posCart[pid].qty<product.qty){ posCart[pid].qty++; renderCart(acc); }
+    else if(product) alert(`الكمية المتاحة: ${fmt(product.qty)}`);
+  }));
+  container.querySelectorAll('[data-dec]').forEach(btn=>btn.addEventListener('click',()=>{
+    const pid=btn.dataset.dec;
+    if(posCart[pid]){ posCart[pid].qty=Math.max(0,posCart[pid].qty-1);
+      if(posCart[pid].qty===0) delete posCart[pid]; renderCart(acc); }
+  }));
+  container.querySelectorAll('[data-rem]').forEach(btn=>btn.addEventListener('click',()=>{
+    delete posCart[btn.dataset.rem]; renderCart(acc);
+  }));
+  container.querySelectorAll('.pos-price-input').forEach(inp=>inp.addEventListener('input',()=>{
+    const pid=inp.dataset.pid; if(posCart[pid]) posCart[pid].unitPrice=parseFloat(inp.value)||0; renderCart(acc);
+  }));
+}
+
 
 /* ---------- Installment account (التقسيط) ---------- */
 function reminderText(acc, deal, status){
@@ -1214,17 +1549,35 @@ function renderInstallment(acc){
     </div>
   `;
 
-  const customerOptions = acc.customers.map(c=>`<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+  const custDatalist = acc.customers.map(c=>`<option value="${escapeHtml(c.name)}">`).join('');
   const supplierOptions = acc.suppliers.map(s=>`<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('');
   const dealOptionsForPayment = acc.deals.filter(d=>dealStatus(acc,d).remaining>0).map(d=>{
     const st = dealStatus(acc,d);
     return `<option value="${d.id}">${escapeHtml(d.customerName)} — متبقي ${fmt(st.remaining)}</option>`;
   }).join('');
 
+  // بطاقات أرصدة العملاء مع تفاصيل الأقساط
   const custBalanceCards = acc.customers.map(c=>{
     const custDeals = acc.deals.filter(d=>d.customerId===c.id);
     const totalOwed = custDeals.reduce((s,d)=>s+dealStatus(acc,d).remaining,0);
     const totalPaid = custDeals.reduce((s,d)=>s+dealStatus(acc,d).paid,0);
+    // تفاصيل كل عملية تقسيط للعميل
+    const dealDetails = custDeals.map(d=>{
+      const st = dealStatus(acc,d);
+      const paidInstallments = d.monthlyInstallment>0 ? Math.floor(st.paid/d.monthlyInstallment) : 0;
+      const remainingInstallments = d.months - paidInstallments;
+      return st.remaining>0 ? `
+        <div class="balance-row" style="flex-direction:column;align-items:flex-start;gap:3px;padding:6px 0;">
+          <span style="font-size:11px;color:var(--ink-soft)">عملية ${fmtDate(d.date)}</span>
+          <div style="display:flex;justify-content:space-between;width:100%;gap:8px;font-size:12.5px;">
+            <span>القسط الشهري: <b style="color:var(--c-blue)">${fmt(d.monthlyInstallment)}</b></span>
+            <span>الأقساط المتبقية: <b style="color:var(--c-red)">${Math.max(0,remainingInstallments)} قسط</b></span>
+          </div>
+          <div style="display:flex;justify-content:space-between;width:100%;gap:8px;font-size:12.5px;">
+            <span>القسط القادم: <b>${st.overdue?`<span class="overdue-tag">متأخر</span>`:fmtDate(st.nextDueDate)}</b></span>
+          </div>
+        </div>` : '';
+    }).join('');
     return `
       <div class="balance-card ${totalOwed>0?'owed':'clear'}">
         <div class="balance-name">👤 ${escapeHtml(c.name)}</div>
@@ -1232,6 +1585,7 @@ function renderInstallment(acc){
         <div class="balance-row"><span>إجمالي عليه:</span><span class="amt neg">${fmt(custDeals.reduce((s,d)=>s+Number(d.totalPayable||0),0))}</span></div>
         <div class="balance-row"><span>المدفوع:</span><span class="amt pos">${fmt(totalPaid)}</span></div>
         <div class="balance-row big"><span>${totalOwed>0?'المتبقي:':'الحالة:'}</span><span class="${totalOwed>0?'amt neg':'amt pos'}">${totalOwed>0?fmt(totalOwed):'✅ مسدّد'}</span></div>
+        ${dealDetails}
       </div>`;
   }).join('') || `<div class="balance-empty">أضف عملاء لعرض أرصدتهم</div>`;
 
@@ -1271,7 +1625,8 @@ function renderInstallment(acc){
     <div class="action-panel" id="panel-deal">
       <div class="action-panel-inner">
         <input type="date" id="dealDate" class="date-input" value="${todayStr()}">
-        <select id="dealCustomer"><option value="">اختر العميل...</option>${customerOptions}</select>
+        <input type="text" id="dealCustomerName" placeholder="اسم العميل" list="custDatalist">
+        <datalist id="custDatalist">${custDatalist}</datalist>
         <select id="dealSupplier"><option value="">المورد (اختياري)</option>${supplierOptions}</select>
         <input type="number" id="dealPrice" placeholder="السعر الإجمالي" step="0.01">
         <input type="number" id="dealDown" placeholder="المقدم المدفوع" step="0.01">
@@ -1397,18 +1752,23 @@ function bindInstallment(){
   // ── عملية تقسيط جديدة ──
   document.getElementById('addDealBtn').addEventListener('click', async ()=>{
     const date = document.getElementById('dealDate').value || todayStr();
-    const customerId = document.getElementById('dealCustomer').value;
+    const customerName = document.getElementById('dealCustomerName').value.trim();
     const supplierId = document.getElementById('dealSupplier').value;
     const totalPrice = parseFloat(document.getElementById('dealPrice').value);
     const downPayment = parseFloat(document.getElementById('dealDown').value) || 0;
     const interestRate = parseFloat(document.getElementById('dealRate').value) || 0;
     const months = parseInt(document.getElementById('dealMonths').value, 10);
 
-    if(!customerId){ alert('من فضلك اختر العميل أولًا'); return; }
+    if(!customerName){ alert('من فضلك اكتب اسم العميل'); return; }
     if(isNaN(totalPrice) || totalPrice<=0 || isNaN(months) || months<=0) return;
     if(downPayment > totalPrice){ alert('المقدم لا يمكن أن يكون أكبر من السعر الإجمالي'); return; }
 
-    const customer = acc.customers.find(c=>c.id===customerId);
+    // تسجيل العميل تلقائياً لو مش موجود
+    let customer = acc.customers.find(c=>c.name.trim()===customerName);
+    if(!customer){
+      customer = {id: uid(), name: customerName, phone:''};
+      acc.customers.push(customer);
+    }
     const supplier = acc.suppliers.find(s=>s.id===supplierId);
     const financed = totalPrice - downPayment;
     const interestAmount = financed * (interestRate/100);
@@ -1416,7 +1776,7 @@ function bindInstallment(){
     const monthlyInstallment = totalPayable / months;
 
     acc.deals.push({
-      id: uid(), date, customerId, customerName: customer.name,
+      id: uid(), date, customerId: customer.id, customerName: customer.name,
       supplierId: supplier?supplier.id:null, supplierName: supplier?supplier.name:null,
       totalPrice, downPayment, interestRate, financed, interestAmount, totalPayable, months, monthlyInstallment
     });
