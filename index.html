@@ -259,6 +259,47 @@
   .reminder-row:last-child{margin-bottom:0;}
   .overdue-tag{background:var(--c-red);color:#fff;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:700;margin-right:6px;}
   .copy-reminder{white-space:nowrap;}
+  .reminder-pay-btn{
+    background:linear-gradient(135deg,#16a34a,#22c55e);
+    border:none;border-radius:8px;padding:7px 14px;
+    color:#fff;font-weight:700;font-size:12.5px;cursor:pointer;
+    font-family:inherit;white-space:nowrap;transition:.12s;
+  }
+  .reminder-pay-btn:hover{filter:brightness(1.08);}
+  .reminder-pay-btn:active{transform:scale(.95);}
+
+  /* ── Edit deal modal ── */
+  #editDealOverlay{
+    position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;
+    align-items:center;justify-content:center;z-index:960;padding:16px;
+  }
+  #editDealOverlay.open{display:flex;}
+  .edit-deal-modal{
+    background:#fff;border-radius:18px;width:100%;max-width:420px;
+    padding:24px;box-shadow:0 20px 40px rgba(0,0,0,.2);
+  }
+  .edm-title{font-weight:900;font-size:17px;margin-bottom:18px;color:var(--ink);}
+  .edm-row{display:flex;flex-direction:column;gap:4px;margin-bottom:12px;}
+  .edm-lbl{font-size:12px;color:var(--ink-soft);font-weight:600;}
+  .edm-input{
+    border:1.5px solid var(--line);border-radius:9px;padding:10px 13px;
+    font-family:inherit;font-size:14px;color:var(--ink);background:#fff;
+  }
+  .edm-input:focus{outline:none;border-color:var(--c-blue);}
+  .edm-result{
+    background:#eff6ff;border-radius:10px;padding:12px 14px;
+    margin:14px 0;display:flex;justify-content:space-between;align-items:center;
+  }
+  .edm-result-lbl{font-size:12px;color:var(--c-blue);font-weight:600;}
+  .edm-result-val{font-size:18px;font-weight:800;color:var(--c-blue);}
+  .edm-actions{display:flex;gap:8px;margin-top:6px;}
+  .edm-save{flex:1;background:var(--c-blue);color:#fff;border:none;border-radius:10px;padding:11px;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit;}
+  .edm-cancel{background:#f3f4f6;color:var(--ink-soft);border:none;border-radius:10px;padding:11px 18px;font-weight:700;cursor:pointer;font-family:inherit;}
+  .edit-deal-btn{
+    background:none;border:none;font-size:15px;cursor:pointer;
+    padding:4px 7px;border-radius:7px;color:var(--c-blue);
+  }
+  .edit-deal-btn:hover{background:var(--blue-soft);}
 
   /* ── Balance cards ── */
   .balances-title{font-weight:800;font-size:14px;color:var(--ink);margin:18px 0 10px;padding-right:4px;}
@@ -320,6 +361,16 @@
     .stat-item{padding:0 10px;}
     .stat-val{font-size:14px;}
   }
+
+  /* ── Monthly total banner (installment) ── */
+  .monthly-total-banner{
+    background:linear-gradient(135deg,#1d4ed8,#3b82f6);
+    border-radius:16px;padding:20px 24px;margin-bottom:16px;
+    color:#fff;text-align:center;box-shadow:0 8px 24px rgba(29,78,216,.3);
+  }
+  .monthly-total-label{font-size:12.5px;opacity:.85;margin-bottom:8px;font-weight:600;}
+  .monthly-total-amount{font-size:36px;font-weight:900;letter-spacing:-1px;margin-bottom:5px;}
+  .monthly-total-sub{font-size:11.5px;opacity:.7;}
 
   /* ── POS / Cashier ── */
   .pos-shell{
@@ -442,6 +493,79 @@
   }
   .purchase-cart-total{display:flex;align-items:center;gap:10px;font-weight:700;font-size:14px;}
 
+  /* ── Customer installment detail modal ── */
+  #custInstallOverlay{
+    position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;
+    align-items:center;justify-content:center;z-index:950;padding:16px;
+  }
+  #custInstallOverlay.open{display:flex;}
+  .cust-install-modal{
+    background:#111827;border-radius:22px;width:100%;max-width:440px;
+    max-height:88vh;display:flex;flex-direction:column;overflow:hidden;
+  }
+  .cim-header{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:18px 20px;background:#1f2937;border-bottom:1px solid #374151;flex-shrink:0;
+  }
+  .cim-title{color:#fff;font-weight:900;font-size:18px;}
+  .cim-close{
+    background:#374151;border:none;color:#9ca3af;border-radius:50%;
+    width:32px;height:32px;cursor:pointer;font-size:16px;display:flex;
+    align-items:center;justify-content:center;
+  }
+  .cim-close:hover{background:#4b5563;color:#fff;}
+  .cim-progress{padding:18px 20px;background:#1a2334;flex-shrink:0;}
+  .cim-progress-nums{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+  .cim-prog-sep{width:1px;height:40px;background:#374151;}
+  .cim-prog-item{text-align:center;flex:1;}
+  .cim-prog-lbl{font-size:11px;color:#6b7280;margin-bottom:4px;}
+  .cim-prog-val{font-size:22px;font-weight:900;}
+  .cim-prog-val.remaining{color:#ef4444;}
+  .cim-prog-val.paid{color:#34d399;}
+  .cim-prog-bar-wrap{height:8px;background:#374151;border-radius:20px;overflow:hidden;}
+  .cim-prog-bar{height:100%;background:linear-gradient(90deg,#1d4ed8,#3b82f6);border-radius:20px;transition:.4s;}
+  .cim-prog-pct{display:flex;justify-content:space-between;font-size:10.5px;color:#6b7280;margin-top:5px;}
+  .cim-pct-mid{color:#60a5fa;font-weight:700;}
+  .cim-tabs{display:flex;background:#1f2937;flex-shrink:0;border-bottom:1px solid #374151;}
+  .cim-tab{
+    flex:1;padding:13px;border:none;background:transparent;color:#6b7280;
+    font-family:inherit;font-weight:700;font-size:13px;cursor:pointer;
+    border-bottom:2px solid transparent;
+  }
+  .cim-tab.active{color:#3b82f6;border-bottom-color:#3b82f6;}
+  .cim-list{padding:12px;overflow-y:auto;flex:1;}
+  .cim-empty{color:#6b7280;text-align:center;padding:28px 0;font-size:13px;}
+
+  /* صف القسط */
+  .cim-row{
+    display:flex;align-items:center;gap:10px;
+    background:#1f2937;border-radius:14px;padding:14px 16px;
+    margin-bottom:8px;border:1px solid transparent;
+  }
+  .cim-row.late{border-color:#991b1b;background:#1c1010;}
+  .cim-row.done{opacity:.5;}
+  .cim-row-right{flex:1;}
+  .cim-inst-title{color:#f9fafb;font-weight:800;font-size:15px;display:block;}
+  .cim-inst-date{color:#6b7280;font-size:12px;margin-top:3px;display:block;}
+  .cim-late-badge{
+    display:inline-block;background:#7f1d1d;color:#fca5a5;
+    font-size:10px;padding:2px 8px;border-radius:20px;font-weight:700;margin-top:4px;
+  }
+  .cim-inst-amt{
+    font-size:18px;font-weight:900;color:#3b82f6;white-space:nowrap;
+  }
+  .cim-pay-btn{
+    background:linear-gradient(135deg,#1d4ed8,#3b82f6);border:none;border-radius:10px;
+    padding:10px 16px;color:#fff;font-weight:700;font-size:13px;cursor:pointer;
+    font-family:inherit;white-space:nowrap;transition:.12s;flex-shrink:0;
+  }
+  .cim-pay-btn:active{transform:scale(.94);}
+  .cim-paid-badge{
+    background:#065f46;color:#34d399;font-size:18px;font-weight:900;
+    width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;
+  }
+
   /* ── Reports page ── */
   .reports-section-title{
     font-weight:800;font-size:15px;color:var(--ink);
@@ -554,6 +678,14 @@
 
 <div id="statementOverlay">
   <div class="statement-box" id="statementBox"></div>
+</div>
+
+<div id="editDealOverlay">
+  <div class="edit-deal-modal" id="editDealModal"></div>
+</div>
+
+<div id="custInstallOverlay">
+  <div class="cust-install-modal" id="custInstallModal"></div>
 </div>
 
 <div class="app-shell">
@@ -782,7 +914,13 @@ function calcTotalsInstallment(acc){
   const totalPaidInstallments = acc.payments.reduce((s,p)=>s+Number(p.amount||0),0);
   const totalRemaining = acc.deals.reduce((s,d)=>s+dealStatus(acc,d).remaining, 0);
   const overdueDeals = acc.deals.filter(d=>dealStatus(acc,d).overdue);
-  return {totalPrice, totalDown, totalFinanced, totalInterest, totalPayable, totalPaidInstallments, totalRemaining, overdueDeals, net: totalInterest};
+  // إجمالي القسط الشهري المجمّع لجميع العملاء (العمليات النشطة فقط)
+  const totalMonthlyInstallments = acc.deals
+    .filter(d=>dealStatus(acc,d).remaining>0)
+    .reduce((s,d)=>s+Number(d.monthlyInstallment||0),0);
+  return {totalPrice, totalDown, totalFinanced, totalInterest, totalPayable,
+    totalPaidInstallments, totalRemaining, overdueDeals,
+    totalMonthlyInstallments, net: totalInterest};
 }
 function calcTotalsLoans(acc){
   const totalLent = acc.loans.reduce((s,l)=>s+Number(l.amount||0),0);
@@ -1637,8 +1775,14 @@ function renderInstallment(acc){
       <div class="reminders-title">⚠️ يوجد ${overdueList.length} قسط متأخر</div>
       ${overdueList.map(({d,status}) => `
         <div class="reminder-row">
-          <div><b>${escapeHtml(d.customerName)}</b> — قسط ${fmt(d.monthlyInstallment)} — مستحق ${fmtDate(status.nextDueDate)} <span class="overdue-tag">متأخر</span></div>
-          <button class="btn-outline copy-reminder" data-copy-deal="${d.id}">📋 نسخ تذكير</button>
+          <div>
+            <b>${escapeHtml(d.customerName)}</b> — قسط ${fmt(d.monthlyInstallment)} — مستحق ${fmtDate(status.nextDueDate)}
+            <span class="overdue-tag">متأخر</span>
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button class="reminder-pay-btn" data-pay-overdue="${d.id}" data-pay-amount="${d.monthlyInstallment}">💳 سداد</button>
+            <button class="btn-outline copy-reminder" data-copy-deal="${d.id}">📋 نسخ تذكير</button>
+          </div>
         </div>
       `).join('')}
     </div>
@@ -1656,31 +1800,23 @@ function renderInstallment(acc){
     const custDeals = acc.deals.filter(d=>d.customerId===c.id);
     const totalOwed = custDeals.reduce((s,d)=>s+dealStatus(acc,d).remaining,0);
     const totalPaid = custDeals.reduce((s,d)=>s+dealStatus(acc,d).paid,0);
-    // تفاصيل كل عملية تقسيط للعميل
-    const dealDetails = custDeals.map(d=>{
-      const st = dealStatus(acc,d);
-      const paidInstallments = d.monthlyInstallment>0 ? Math.floor(st.paid/d.monthlyInstallment) : 0;
-      const remainingInstallments = d.months - paidInstallments;
-      return st.remaining>0 ? `
-        <div class="balance-row" style="flex-direction:column;align-items:flex-start;gap:3px;padding:6px 0;">
-          <span style="font-size:11px;color:var(--ink-soft)">عملية ${fmtDate(d.date)}</span>
-          <div style="display:flex;justify-content:space-between;width:100%;gap:8px;font-size:12.5px;">
-            <span>القسط الشهري: <b style="color:var(--c-blue)">${fmt(d.monthlyInstallment)}</b></span>
-            <span>الأقساط المتبقية: <b style="color:var(--c-red)">${Math.max(0,remainingInstallments)} قسط</b></span>
-          </div>
-          <div style="display:flex;justify-content:space-between;width:100%;gap:8px;font-size:12.5px;">
-            <span>القسط القادم: <b>${st.overdue?`<span class="overdue-tag">متأخر</span>`:fmtDate(st.nextDueDate)}</b></span>
-          </div>
-        </div>` : '';
-    }).join('');
+    const totalPayable = custDeals.reduce((s,d)=>s+Number(d.totalPayable||0),0);
+    const pct = totalPayable>0 ? Math.round((totalPaid/totalPayable)*100) : 0;
     return `
-      <div class="balance-card ${totalOwed>0?'owed':'clear'}">
-        <div class="balance-name">👤 ${escapeHtml(c.name)}</div>
+      <div class="balance-card ${totalOwed>0?'owed':'clear'} cust-clickable" data-cust-id="${c.id}" style="cursor:pointer;">
+        <div class="balance-name">👤 ${escapeHtml(c.name)} <span style="font-size:11px;color:var(--ink-soft);font-weight:500;">اضغط للتفاصيل</span></div>
         ${c.phone?`<div class="balance-phone">📞 ${escapeHtml(c.phone)}</div>`:''}
-        <div class="balance-row"><span>إجمالي عليه:</span><span class="amt neg">${fmt(custDeals.reduce((s,d)=>s+Number(d.totalPayable||0),0))}</span></div>
+        <div class="balance-row"><span>إجمالي عليه:</span><span class="amt neg">${fmt(totalPayable)}</span></div>
         <div class="balance-row"><span>المدفوع:</span><span class="amt pos">${fmt(totalPaid)}</span></div>
+        <div style="margin:8px 0 4px;">
+          <div style="height:6px;background:#e5e7eb;border-radius:10px;overflow:hidden;">
+            <div style="height:100%;width:${pct}%;background:${pct>=100?'var(--c-green)':'var(--c-blue)'};border-radius:10px;transition:.3s;"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:10.5px;color:var(--ink-soft);margin-top:3px;">
+            <span>${pct}% مسدّد</span><span>${100-pct}% متبقي</span>
+          </div>
+        </div>
         <div class="balance-row big"><span>${totalOwed>0?'المتبقي:':'الحالة:'}</span><span class="${totalOwed>0?'amt neg':'amt pos'}">${totalOwed>0?fmt(totalOwed):'✅ مسدّد'}</span></div>
-        ${dealDetails}
       </div>`;
   }).join('') || `<div class="balance-empty">أضف عملاء لعرض أرصدتهم</div>`;
 
@@ -1698,6 +1834,14 @@ function renderInstallment(acc){
 
   return `
     ${remindersHtml}
+
+    <!-- بانر إجمالي القسط الشهري المجمّع -->
+    <div class="monthly-total-banner">
+      <div class="monthly-total-label">📅 إجمالي الأقساط الشهرية المستحقة من جميع العملاء</div>
+      <div class="monthly-total-amount">${fmt(t.totalMonthlyInstallments)}</div>
+      <div class="monthly-total-sub">${acc.deals.filter(d=>dealStatus(acc,d).remaining>0).length} عميل نشط · يستحق شهرياً</div>
+    </div>
+
     <div class="stats-bar">
       <div class="stat-item"><span class="stat-lbl">إجمالي أسعار السلع</span><span class="stat-val">${fmt(t.totalPrice)}</span></div>
       <div class="stat-sep"></div>
@@ -1787,7 +1931,10 @@ function renderInstallment(acc){
                 <td class="amt pos">${fmt(st.paid)}</td>
                 <td class="amt" style="font-weight:800;color:${st.remaining<=0?'var(--c-green)':'var(--c-red)'}">${st.remaining<=0?'✅ مسدّد':fmt(st.remaining)}</td>
                 <td class="date-cell">${st.remaining<=0?'—':(st.overdue?`<span class="overdue-tag">متأخر — ${fmtDate(st.nextDueDate)}</span>`:fmtDate(st.nextDueDate))}</td>
-                <td><button class="del-btn" data-del-deal="${d.id}">✕</button></td>
+                <td style="white-space:nowrap;display:flex;gap:4px;padding:8px;">
+                  <button class="edit-deal-btn" data-edit-deal="${d.id}" title="تعديل">✏️</button>
+                  <button class="del-btn" data-del-deal="${d.id}">✕</button>
+                </td>
               </tr>`;
             }).join('')}
         </tbody>
@@ -1810,9 +1957,226 @@ function renderInstallment(acc){
   `;
 }
 
+function openCustInstall(acc, custId){
+  const customer = acc.customers.find(c=>c.id===custId);
+  if(!customer) return;
+
+  let activeTab = 'remaining';
+
+  /* بناء جدول شهري مجمّع من كل عمليات العميل */
+  function buildConsolidated(){
+    const custDeals = acc.deals.filter(d=>d.customerId===custId);
+    const monthMap  = {};
+
+    custDeals.forEach(deal=>{
+      for(let i=1; i<=deal.months; i++){
+        const dueDate = addMonths(deal.date, i);
+        const ym = dueDate.slice(0,7);
+        if(!monthMap[ym]) monthMap[ym] = {dueDate, amount:0, shares:[]};
+        monthMap[ym].amount += deal.monthlyInstallment;
+        monthMap[ym].shares.push({dealId:deal.id, amount:deal.monthlyInstallment});
+      }
+    });
+
+    // حساب الأقساط المدفوعة — تُوزَّع بالترتيب الزمني
+    const sortedMonths = Object.keys(monthMap).sort();
+    let paidPool = custDeals.reduce((s,d)=>s+dealStatus(acc,d).paid, 0);
+
+    return sortedMonths.map((ym,idx)=>{
+      const entry   = monthMap[ym];
+      const isPaid  = paidPool >= entry.amount;
+      if(isPaid) paidPool -= entry.amount;
+      const isOverdue = !isPaid && entry.dueDate < todayStr();
+      return {num:idx+1, ym, dueDate:entry.dueDate, amount:entry.amount, shares:entry.shares, isPaid, isOverdue};
+    });
+  }
+
+  function calcTotals(){
+    const custDeals   = acc.deals.filter(d=>d.customerId===custId);
+    const totalPayable= custDeals.reduce((s,d)=>s+Number(d.totalPayable||0),0);
+    const totalPaid   = custDeals.reduce((s,d)=>s+dealStatus(acc,d).paid,0);
+    const totalRemain = Math.max(0, totalPayable-totalPaid);
+    const pct = totalPayable>0 ? Math.min(100,Math.round((totalPaid/totalPayable)*100)) : 0;
+    return {totalPayable, totalPaid, totalRemain, pct};
+  }
+
+  function renderModal(){
+    const {totalPaid, totalRemain, pct} = calcTotals();
+    const schedule      = buildConsolidated();
+    const remainingList = schedule.filter(x=>!x.isPaid);
+    const paidList      = schedule.filter(x=>x.isPaid);
+    const listToShow    = activeTab==='remaining' ? remainingList : paidList;
+
+    const rows = listToShow.length===0
+      ? `<div class="cim-empty">لا توجد أقساط في هذا القسم</div>`
+      : listToShow.map(inst=>`
+        <div class="cim-row ${inst.isPaid?'done':inst.isOverdue?'late':''}">
+          <div class="cim-row-right">
+            <span class="cim-inst-title">القسط ${inst.num}</span>
+            <span class="cim-inst-date">🗓 ${fmtDate(inst.dueDate)}</span>
+            ${inst.isOverdue?`<span class="cim-late-badge">متأخر</span>`:''}
+            ${inst.shares.length>1?`<span style="font-size:10px;color:#6b7280;">(${inst.shares.length} عمليات مجمّعة)</span>`:''}
+          </div>
+          <span class="cim-inst-amt">${fmt(inst.amount)}</span>
+          ${inst.isPaid
+            ? `<span class="cim-paid-badge">✓</span>`
+            : `<button class="cim-pay-btn"
+                data-pay-month="${inst.ym}"
+                data-pay-amount="${inst.amount}"
+                data-pay-shares='${JSON.stringify(inst.shares)}'>تسديد</button>`}
+        </div>`).join('');
+
+    document.getElementById('custInstallModal').innerHTML = `
+      <div class="cim-header">
+        <button class="cim-close" id="closeCimBtn">✕</button>
+        <span class="cim-title">👤 ${escapeHtml(customer.name)}</span>
+      </div>
+      <div class="cim-progress">
+        <div class="cim-progress-nums">
+          <div class="cim-prog-item"><div class="cim-prog-lbl">المتبقي</div><div class="cim-prog-val remaining">${fmt(totalRemain)}</div></div>
+          <div class="cim-prog-sep"></div>
+          <div class="cim-prog-item"><div class="cim-prog-lbl">المسدّد</div><div class="cim-prog-val paid">${fmt(totalPaid)}</div></div>
+        </div>
+        <div class="cim-prog-bar-wrap"><div class="cim-prog-bar" style="width:${pct}%"></div></div>
+        <div class="cim-prog-pct"><span>0%</span><span class="cim-pct-mid">${pct}% مسدّد</span><span>100%</span></div>
+      </div>
+      <div class="cim-tabs">
+        <button class="cim-tab ${activeTab==='remaining'?'active':''}" data-cim-tab="remaining">المتبقية (${remainingList.length})</button>
+        <button class="cim-tab ${activeTab==='paid'?'active':''}" data-cim-tab="paid">المسددة (${paidList.length})</button>
+      </div>
+      <div class="cim-list">${rows}</div>
+    `;
+
+    document.getElementById('closeCimBtn').onclick = ()=>
+      document.getElementById('custInstallOverlay').classList.remove('open');
+
+    document.querySelectorAll('[data-cim-tab]').forEach(btn=>
+      btn.addEventListener('click',()=>{ activeTab=btn.dataset.cimTab; renderModal(); }));
+
+    document.querySelectorAll('[data-pay-month]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const shares = JSON.parse(btn.dataset.payShares);
+        const date   = todayStr();
+        // توزيع الدفع على كل عملية بحصتها
+        shares.forEach(sh=>{
+          const deal = acc.deals.find(d=>d.id===sh.dealId);
+          if(!deal) return;
+          const st = dealStatus(acc, deal);
+          const toPay = Math.min(sh.amount, st.remaining);
+          if(toPay > 0) acc.payments.push({id:uid(), date, dealId:sh.dealId, amount:toPay});
+        });
+        renderModal();  // فوري
+        saveState();    // في الخلفية
+      });
+    });
+  }
+
+  document.getElementById('custInstallOverlay').classList.add('open');
+  renderModal();
+  document.getElementById('custInstallOverlay').onclick = e=>{
+    if(e.target===document.getElementById('custInstallOverlay'))
+      document.getElementById('custInstallOverlay').classList.remove('open');
+  };
+}
+
+function openEditDeal(acc, dealId){
+  const overlay = document.getElementById('editDealOverlay');
+  const modal   = document.getElementById('editDealModal');
+  const d       = acc.deals.find(x=>x.id===dealId);
+  if(!d) return;
+
+  function calcPreview(){
+    const price    = parseFloat(document.getElementById('edm-price')?.value)||0;
+    const down     = parseFloat(document.getElementById('edm-down')?.value)||0;
+    const rate     = parseFloat(document.getElementById('edm-rate')?.value)||0;
+    const months   = parseInt(document.getElementById('edm-months')?.value)||1;
+    const financed = Math.max(0, price-down);
+    const interest = financed * (rate/100);
+    const monthly  = (financed+interest) / months;
+    const el = document.getElementById('edm-monthly-preview');
+    if(el) el.textContent = fmt(monthly);
+  }
+
+  modal.innerHTML = `
+    <div class="edm-title">✏️ تعديل عملية التقسيط — ${escapeHtml(d.customerName)}</div>
+    <div class="edm-row"><label class="edm-lbl">التاريخ</label>
+      <input class="edm-input" id="edm-date" type="date" value="${d.date}"></div>
+    <div class="edm-row"><label class="edm-lbl">السعر الإجمالي للسلعة</label>
+      <input class="edm-input" id="edm-price" type="number" value="${d.totalPrice}" step="0.01"></div>
+    <div class="edm-row"><label class="edm-lbl">المقدم المدفوع</label>
+      <input class="edm-input" id="edm-down" type="number" value="${d.downPayment}" step="0.01"></div>
+    <div class="edm-row"><label class="edm-lbl">نسبة الفائدة %</label>
+      <input class="edm-input" id="edm-rate" type="number" value="${d.interestRate}" step="0.01"></div>
+    <div class="edm-row"><label class="edm-lbl">عدد الأشهر</label>
+      <input class="edm-input" id="edm-months" type="number" value="${d.months}" step="1"></div>
+    <div class="edm-result">
+      <span class="edm-result-lbl">القسط الشهري الجديد</span>
+      <span class="edm-result-val" id="edm-monthly-preview">${fmt(d.monthlyInstallment)}</span>
+    </div>
+    <div class="edm-actions">
+      <button class="edm-cancel" id="edm-cancel">إلغاء</button>
+      <button class="edm-save" id="edm-save">✔ حفظ التعديلات</button>
+    </div>
+  `;
+
+  overlay.classList.add('open');
+  ['edm-price','edm-down','edm-rate','edm-months'].forEach(id=>{
+    document.getElementById(id)?.addEventListener('input', calcPreview);
+  });
+
+  document.getElementById('edm-cancel').onclick = ()=> overlay.classList.remove('open');
+
+  document.getElementById('edm-save').onclick = async ()=>{
+    const price  = parseFloat(document.getElementById('edm-price').value);
+    const down   = parseFloat(document.getElementById('edm-down').value)||0;
+    const rate   = parseFloat(document.getElementById('edm-rate').value)||0;
+    const months = parseInt(document.getElementById('edm-months').value)||1;
+    const date   = document.getElementById('edm-date').value || d.date;
+    if(isNaN(price)||price<=0||months<=0) return;
+    if(down>price){alert('المقدم لا يمكن أن يكون أكبر من السعر');return;}
+    const financed       = price - down;
+    const interestAmount = financed * (rate/100);
+    const totalPayable   = financed + interestAmount;
+    const monthlyInstallment = totalPayable / months;
+    Object.assign(d, {date, totalPrice:price, downPayment:down, interestRate:rate,
+      financed, interestAmount, totalPayable, months, monthlyInstallment});
+    overlay.classList.remove('open');
+    await saveState(); render();
+  };
+  overlay.onclick = e=>{ if(e.target===overlay) overlay.classList.remove('open'); };
+}
+
 function bindInstallment(){
   const acc = getActive();
   bindActionBar();
+
+  // ── تعديل عملية تقسيط ──
+  document.querySelectorAll('[data-edit-deal]').forEach(btn=>{
+    btn.addEventListener('click', ()=> openEditDeal(acc, btn.dataset.editDeal));
+  });
+
+  // ── سداد مباشر من بانر التأخير ──
+  document.querySelectorAll('[data-pay-overdue]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const dealId = btn.dataset.payOverdue;
+      const amount = parseFloat(btn.dataset.payAmount);
+      const deal   = acc.deals.find(d=>d.id===dealId);
+      if(!deal) return;
+      const st = dealStatus(acc, deal);
+      if(st.remaining<=0){ btn.textContent='✅ مسدّد'; return; }
+      const toPay = Math.min(amount, st.remaining);
+      acc.payments.push({id:uid(), date:todayStr(), dealId, amount:toPay});
+      btn.textContent='✅ تم';
+      btn.disabled=true;
+      btn.style.background='#6b7280';
+      saveState().then(()=>render());
+    });
+  });
+
+  // ── فتح تفاصيل العميل لما يضغط على البطاقة ──
+  document.querySelectorAll('.cust-clickable[data-cust-id]').forEach(card=>{
+    card.addEventListener('click', ()=>openCustInstall(acc, card.dataset.custId));
+  });
 
   // ── إضافة عميل ──
   document.getElementById('addCustBtn').addEventListener('click', async ()=>{
