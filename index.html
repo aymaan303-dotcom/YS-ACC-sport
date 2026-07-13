@@ -269,6 +269,12 @@
   .reminder-pay-btn:active{transform:scale(.95);}
 
   /* ── Edit deal modal ── */
+  #editPurchaseOverlay{
+    position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;
+    align-items:center;justify-content:center;z-index:960;padding:16px;
+  }
+  #editPurchaseOverlay.open{display:flex;}
+
   #editDealOverlay{
     position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;
     align-items:center;justify-content:center;z-index:960;padding:16px;
@@ -686,6 +692,10 @@
   <div class="statement-box" id="statementBox"></div>
 </div>
 
+<div id="editPurchaseOverlay">
+  <div class="edit-deal-modal" id="editPurchaseModal"></div>
+</div>
+
 <div id="editDealOverlay">
   <div class="edit-deal-modal" id="editDealModal"></div>
 </div>
@@ -849,7 +859,7 @@ function defaultAccount(name, type){
   if(type === 'loans'){
     return { id: uid(), name, type, loans:[], repayments:[] };
   }
-  return { id: uid(), name, type:'general', income:[], expense:[], salary:[] };
+  return { id: uid(), name, type:'general', income:[], expense:[], salary:[], employees:[], empLoans:[] };
 }
 function normalizeAccount(acc){
   if(acc.type === 'cafeteria'){
@@ -865,9 +875,19 @@ function normalizeAccount(acc){
     if(!acc.loans) acc.loans = [];
     if(!acc.repayments) acc.repayments = [];
   }
+  if(acc.type === 'general'){
+    if(!acc.employees) acc.employees = [];
+    if(!acc.empLoans) acc.empLoans = [];
+  }
   return acc;
 }
 function getActive(){ return state.accounts.find(a => a.id === state.activeId); }
+
+function empLoanBalance(acc, empId){
+  const totalLoaned = acc.empLoans.filter(l=>l.empId===empId && l.type==='loan').reduce((s,l)=>s+Number(l.amount||0),0);
+  const totalPaid   = acc.empLoans.filter(l=>l.empId===empId && l.type==='repay').reduce((s,l)=>s+Number(l.amount||0),0);
+  return {totalLoaned, totalPaid, remaining: Math.max(0, totalLoaned-totalPaid)};
+}
 
 function addMonths(dateStr, n){
   const d = new Date(dateStr + 'T00:00:00');
@@ -1143,6 +1163,7 @@ function bindActionBar(){
 }
 
 /* ---------- General account ---------- */
+/* ---------- General account ---------- */
 function renderGeneral(acc){
   const t = calcTotalsGeneral(acc);
   const incSorted = [...acc.income].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
@@ -1152,19 +1173,35 @@ function renderGeneral(acc){
     ...acc.salary.map(x=>({...x, cat: x.cat||'مرتب', src:'salary'})),
   ].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
 
-  // الفلاتر تتولد تلقائيًا من الأنواع المضافة فعلًا
   const uniqueCats = ['الكل', ...new Set(allExpRows.map(x=>x.cat))];
   const activeFilter = acc._expFilter && uniqueCats.includes(acc._expFilter) ? acc._expFilter : 'الكل';
   const filtered = activeFilter==='الكل' ? allExpRows : allExpRows.filter(x=>x.cat===activeFilter);
   const totalFiltered = filtered.reduce((s,x)=>s+Number(x.amount||0),0);
-  // الأنواع السابقة للـ datalist
   const prevCats = [...new Set(allExpRows.map(x=>x.cat))];
+  const empOptions = acc.employees.map(e=>`<option value="${e.id}">${escapeHtml(e.name)}</option>`).join('');
+  const empDatalist = acc.employees.map(e=>`<option value="${escapeHtml(e.name)}">`).join('');
+
+  const empCards = acc.employees.map(e=>{
+    const bal = empLoanBalance(acc, e.id);
+    const totalSalaryPaid = acc.salary.filter(s=>s.empId===e.id).reduce((s,x)=>s+Number(x.amount||0),0);
+    return `
+      <div class="balance-card ${bal.remaining>0?'owed':'clear'}">
+        <div class="balance-name">👤 ${escapeHtml(e.name)}</div>
+        <div class="balance-row"><span>إجمالي السلف:</span><span class="amt neg">${fmt(bal.totalLoaned)}</span></div>
+        <div class="balance-row"><span>المخصوم من المرتب:</span><span class="amt pos">${fmt(bal.totalPaid)}</span></div>
+        <div class="balance-row"><span>إجمالي المرتبات:</span><span class="amt">${fmt(totalSalaryPaid)}</span></div>
+        <div class="balance-row big"><span>${bal.remaining>0?'سلفة متبقية:':'السلفة:'}</span>
+          <span class="${bal.remaining>0?'amt neg':'amt pos'}">${bal.remaining>0?fmt(bal.remaining):'لا يوجد ✅'}</span>
+        </div>
+        <button class="del-btn" data-del-emp="${e.id}" style="margin-top:6px;width:100%;text-align:center;">حذف الموظف</button>
+      </div>`;
+  }).join('') || '<div class="balance-empty">أضف موظفين لمتابعة سلفهم ومرتباتهم</div>';
 
   return `
     <div class="stats-bar">
       <div class="stat-item"><span class="stat-lbl">الإيرادات</span><span class="stat-val pos">${fmt(t.income)}</span></div>
       <div class="stat-sep"></div>
-      <div class="stat-item"><span class="stat-lbl">إجمالي المصاريف</span><span class="stat-val neg">${fmt(t.expense)}</span></div>
+      <div class="stat-item"><span class="stat-lbl">المصاريف</span><span class="stat-val neg">${fmt(t.expense)}</span></div>
       <div class="stat-sep"></div>
       <div class="stat-item"><span class="stat-lbl">المرتبات</span><span class="stat-val" style="color:var(--c-yellow)">${fmt(t.salaryTotal)}</span></div>
       <div class="stat-sep"></div>
@@ -1172,28 +1209,78 @@ function renderGeneral(acc){
     </div>
 
     <div class="action-bar">
-      <button class="action-btn green" data-panel="panel-income">➕ إيراد جديد</button>
-      <button class="action-btn red"   data-panel="panel-expense">➕ مصروف / مرتب / سلفة</button>
+      <button class="action-btn green"  data-panel="panel-income">➕ إيراد</button>
+      <button class="action-btn red"    data-panel="panel-expense">➕ مصروف</button>
+      <button class="action-btn yellow" data-panel="panel-salary">💰 مرتب</button>
+      <button class="action-btn blue"   data-panel="panel-emp-loan">🤝 سلفة</button>
+      <button class="action-btn" data-panel="panel-add-emp" style="background:#6d28d9;color:#fff">👤 موظف جديد</button>
     </div>
 
     <div class="action-panel" id="panel-income">
       <div class="action-panel-inner">
         <input type="date" id="incDate" class="date-input" value="${todayStr()}">
-        <input type="text" id="incDesc" placeholder="البيان / الوصف">
+        <input type="text" id="incDesc" placeholder="البيان">
         <input type="number" id="incAmount" placeholder="المبلغ" step="0.01">
         <button id="addIncBtn" style="background:var(--c-green)">✔ حفظ</button>
       </div>
     </div>
+
     <div class="action-panel" id="panel-expense">
       <div class="action-panel-inner">
         <input type="date" id="expDate" class="date-input" value="${todayStr()}">
-        <input type="text" id="expCat" placeholder="نوع المصروف (مثال: مرتب، كهرباء...)" list="catDatalist" autocomplete="off">
+        <input type="text" id="expCat" placeholder="نوع المصروف" list="catDatalist" autocomplete="off">
         <datalist id="catDatalist">${prevCats.map(c=>`<option value="${escapeHtml(c)}">`).join('')}</datalist>
-        <input type="text" id="expDesc" placeholder="البيان / الوصف">
+        <input type="text" id="expDesc" placeholder="البيان">
         <input type="number" id="expAmount" placeholder="المبلغ" step="0.01">
         <button id="addExpBtn" style="background:var(--c-red)">✔ حفظ</button>
       </div>
     </div>
+
+    <div class="action-panel" id="panel-salary">
+      <div class="action-panel-inner" style="flex-direction:column;gap:10px;align-items:stretch;">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+          <input type="date" id="salDate" class="date-input" value="${todayStr()}">
+          <select id="salEmpSel" style="flex:1;min-width:120px;border:1.5px solid var(--line);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px;">
+            <option value="">اختر الموظف...</option>${empOptions}
+            <option value="__other__">موظف آخر</option>
+          </select>
+          <input type="text" id="salEmpName" placeholder="اسم الموظف" list="empDatalist"
+            style="display:none;flex:1;min-width:120px;border:1.5px solid var(--line);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px;">
+          <datalist id="empDatalist">${empDatalist}</datalist>
+          <input type="number" id="salAmount" placeholder="المرتب الإجمالي" step="0.01">
+        </div>
+        <div id="salAdvanceInfo" style="background:#fef3c7;border-radius:9px;padding:10px 14px;font-size:13px;display:none;">
+          <b>السلفة المتبقية: <span id="salAdvanceBalance" style="color:var(--c-red)">0</span></b>
+          <span style="color:var(--ink-soft);"> — سيتم الخصم تلقائياً</span><br>
+          مبلغ الخصم: <input type="number" id="salDeductAmt" step="0.01" min="0"
+            style="width:110px;border:1.5px solid var(--line);border-radius:7px;padding:5px 8px;font-family:inherit;margin-top:5px;">
+        </div>
+        <button id="addSalBtn" style="background:var(--c-yellow);border:none;border-radius:9px;padding:11px;color:#fff;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit;">✔ صرف المرتب</button>
+      </div>
+    </div>
+
+    <div class="action-panel" id="panel-emp-loan">
+      <div class="action-panel-inner">
+        <input type="date" id="empLoanDate" class="date-input" value="${todayStr()}">
+        <select id="empLoanSel" style="flex:1;min-width:120px;border:1.5px solid var(--line);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px;">
+          <option value="">اختر الموظف...</option>${empOptions}
+        </select>
+        <input type="number" id="empLoanAmount" placeholder="مبلغ السلفة" step="0.01">
+        <input type="text" id="empLoanNote" placeholder="بيان السلفة (اختياري)">
+        <button id="addEmpLoanBtn" style="background:var(--c-blue)">✔ إضافة سلفة</button>
+      </div>
+    </div>
+
+    <div class="action-panel" id="panel-add-emp">
+      <div class="action-panel-inner">
+        <input type="text" id="newEmpName" placeholder="اسم الموظف الجديد">
+        <button id="addNewEmpBtn" style="background:#6d28d9">✔ إضافة موظف</button>
+      </div>
+    </div>
+
+    ${acc.employees.length>0?`
+    <div class="balances-title">👥 موظفو الملعب — السلف والمرتبات</div>
+    <div class="balances-grid" style="margin-bottom:18px;">${empCards}</div>`:''}
 
     <div class="section income-section">
       <div class="section-head"><div class="title"><span class="dot income"></span>الإيرادات</div><div class="total">${fmt(t.income)}</div></div>
@@ -1201,8 +1288,7 @@ function renderGeneral(acc){
         <thead><tr><th>التاريخ</th><th>البيان</th><th>المبلغ</th><th></th></tr></thead>
         <tbody>${incSorted.length===0?`<tr><td colspan="4" class="empty-row">لا توجد إيرادات بعد</td></tr>`:
           incSorted.map(it=>`<tr>
-            <td class="date-cell">${fmtDate(it.date)}</td>
-            <td>${escapeHtml(it.desc)}</td>
+            <td class="date-cell">${fmtDate(it.date)}</td><td>${escapeHtml(it.desc)}</td>
             <td class="amt pos">${fmt(it.amount)}</td>
             <td><button class="del-btn" data-del-income="${it.id}">✕</button></td>
           </tr>`).join('')}
@@ -1212,8 +1298,8 @@ function renderGeneral(acc){
 
     <div class="section expense-section">
       <div class="section-head">
-        <div class="title"><span class="dot expense"></span>المصاريف والمرتبات والسلف</div>
-        <div class="total">${activeFilter==='الكل'?fmt(t.expense):fmt(totalFiltered)}</div>
+        <div class="title"><span class="dot expense"></span>المصاريف والمرتبات</div>
+        <div class="total">${fmt(activeFilter==='الكل'?t.expense:totalFiltered)}</div>
       </div>
       <div class="filter-bar">
         ${uniqueCats.map(c=>{
@@ -1226,13 +1312,15 @@ function renderGeneral(acc){
         }).join('')}
       </div>
       <table>
-        <thead><tr><th>التاريخ</th><th>النوع</th><th>البيان</th><th>المبلغ</th><th></th></tr></thead>
-        <tbody>${filtered.length===0?`<tr><td colspan="5" class="empty-row">لا توجد عناصر في هذا التصنيف</td></tr>`:
+        <thead><tr><th>التاريخ</th><th>النوع</th><th>البيان</th><th>المبلغ</th><th>خصم سلفة</th><th>الصافي</th><th></th></tr></thead>
+        <tbody>${filtered.length===0?`<tr><td colspan="7" class="empty-row">لا توجد عناصر</td></tr>`:
           filtered.map(it=>`<tr>
             <td class="date-cell">${fmtDate(it.date)}</td>
             <td><span class="cat-tag">${escapeHtml(it.cat)}</span></td>
             <td>${escapeHtml(it.desc)}</td>
             <td class="amt neg">${fmt(it.amount)}</td>
+            <td class="amt" style="color:var(--c-red)">${Number(it.deduct||0)>0?fmt(it.deduct):'—'}</td>
+            <td class="amt pos">${it.cat==='مرتب'?fmt(Number(it.amount||0)-Number(it.deduct||0)):'—'}</td>
             <td><button class="del-btn" data-del-exp="${it.src}:${it.id}">✕</button></td>
           </tr>`).join('')}
         </tbody>
@@ -1241,19 +1329,109 @@ function renderGeneral(acc){
   `;
 }
 
+
 function bindGeneral(){
   const acc = getActive();
   bindActionBar();
 
   // فلاتر الأنواع
   document.querySelectorAll('.filter-btn[data-filter]').forEach(btn=>{
-    btn.addEventListener('click',()=>{
-      acc._expFilter = btn.dataset.filter;
-      render();
+    btn.addEventListener('click',()=>{ acc._expFilter=btn.dataset.filter; render(); });
+  });
+
+  // إضافة موظف جديد
+  document.getElementById('addNewEmpBtn')?.addEventListener('click', async ()=>{
+    const name = document.getElementById('newEmpName').value.trim();
+    if(!name) return;
+    if(acc.employees.find(e=>e.name===name)){ alert('الموظف موجود بالفعل'); return; }
+    acc.employees.push({id:uid(), name});
+    await saveState(); render();
+  });
+
+  // حذف موظف
+  document.querySelectorAll('[data-del-emp]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      if(!confirm('حذف الموظف سيحذف سجل سلفه. هل أنت متأكد؟')) return;
+      const empId = btn.dataset.delEmp;
+      acc.employees = acc.employees.filter(e=>e.id!==empId);
+      acc.empLoans  = acc.empLoans.filter(l=>l.empId!==empId);
+      await saveState(); render();
     });
   });
 
-  document.getElementById('addIncBtn').addEventListener('click', async ()=>{
+  // إضافة سلفة موظف
+  document.getElementById('addEmpLoanBtn')?.addEventListener('click', async ()=>{
+    const date   = document.getElementById('empLoanDate').value || todayStr();
+    const empId  = document.getElementById('empLoanSel').value;
+    const amount = parseFloat(document.getElementById('empLoanAmount').value);
+    const note   = document.getElementById('empLoanNote').value.trim();
+    if(!empId || isNaN(amount) || amount<=0) return;
+    const emp = acc.employees.find(e=>e.id===empId);
+    acc.empLoans.push({id:uid(), date, empId, empName:emp.name, amount, note, type:'loan'});
+    // تسجيل السلفة كمصروف أيضاً
+    acc.expense.push({id:uid(), date, desc:`سلفة: ${emp.name}${note?' — '+note:''}`, amount, cat:'سلفة'});
+    await saveState(); render();
+  });
+
+  // اختيار موظف في صرف المرتب — عرض السلفة المتبقية
+  const salEmpSel = document.getElementById('salEmpSel');
+  if(salEmpSel){
+    salEmpSel.addEventListener('change', ()=>{
+      const empId = salEmpSel.value;
+      const nameInput = document.getElementById('salEmpName');
+      const info = document.getElementById('salAdvanceInfo');
+      if(empId === '__other__'){
+        nameInput.style.display=''; info.style.display='none'; return;
+      }
+      nameInput.style.display='none';
+      if(!empId){ info.style.display='none'; return; }
+      const bal = empLoanBalance(acc, empId);
+      if(bal.remaining>0){
+        info.style.display='';
+        document.getElementById('salAdvanceBalance').textContent = fmt(bal.remaining);
+        document.getElementById('salDeductAmt').value = bal.remaining;
+      } else {
+        info.style.display='none';
+      }
+    });
+  }
+
+  // صرف مرتب مع خصم سلفة تلقائي
+  document.getElementById('addSalBtn')?.addEventListener('click', async ()=>{
+    const date   = document.getElementById('salDate').value || todayStr();
+    const empId  = document.getElementById('salEmpSel').value;
+    const amount = parseFloat(document.getElementById('salAmount').value);
+    if(isNaN(amount) || amount<=0) return;
+
+    let empName = '';
+    let actualEmpId = null;
+    if(empId === '__other__'){
+      empName = document.getElementById('salEmpName').value.trim();
+      if(!empName) return;
+    } else if(empId){
+      const emp = acc.employees.find(e=>e.id===empId);
+      empName = emp.name; actualEmpId = empId;
+    } else { alert('اختر الموظف'); return; }
+
+    // خصم السلفة
+    let deduct = 0;
+    if(actualEmpId){
+      const bal = empLoanBalance(acc, actualEmpId);
+      if(bal.remaining>0){
+        const deductInput = parseFloat(document.getElementById('salDeductAmt')?.value)||0;
+        deduct = Math.min(deductInput, bal.remaining, amount);
+        if(deduct>0){
+          acc.empLoans.push({id:uid(), date, empId:actualEmpId, empName, amount:deduct, note:'خصم من المرتب', type:'repay'});
+        }
+      }
+    }
+
+    acc.salary.push({id:uid(), date, desc:empName, amount, advance:deduct, deduct, cat:'مرتب', empId:actualEmpId});
+    await saveState(); render();
+  });
+
+  // إيراد
+  document.getElementById('addIncBtn')?.addEventListener('click', async ()=>{
     const date=document.getElementById('incDate').value||todayStr();
     const desc=document.getElementById('incDesc').value.trim();
     const amount=parseFloat(document.getElementById('incAmount').value);
@@ -1262,25 +1440,23 @@ function bindGeneral(){
     await saveState(); render();
   });
 
-  document.getElementById('addExpBtn').addEventListener('click', async ()=>{
-    const date = document.getElementById('expDate').value || todayStr();
+  // مصروف
+  document.getElementById('addExpBtn')?.addEventListener('click', async ()=>{
+    const date   = document.getElementById('expDate').value || todayStr();
     const catRaw = document.getElementById('expCat').value.trim();
-    const cat = catRaw || 'مصروف';
-    const desc = document.getElementById('expDesc').value.trim();
+    const cat    = catRaw || 'مصروف';
+    const desc   = document.getElementById('expDesc').value.trim();
     const amount = parseFloat(document.getElementById('expAmount').value);
     if(!desc || isNaN(amount)) return;
-    // مرتب وسلفة تتحفظ في salary للتوافق مع الكشوف
-    if(cat === 'مرتب' || cat === 'سلفة'){
+    if(cat==='مرتب'||cat==='سلفة'){
       acc.salary.push({id:uid(), date, desc, amount, advance:0, cat});
     } else {
       acc.expense.push({id:uid(), date, desc, amount, cat});
     }
-    document.getElementById('expCat').value = '';
-    document.getElementById('expDesc').value = '';
-    document.getElementById('expAmount').value = '';
     await saveState(); render();
   });
 
+  // حذف إيراد / مصروف
   document.querySelectorAll('[data-del-income]').forEach(b=>b.addEventListener('click',async()=>{
     acc.income=acc.income.filter(x=>x.id!==b.dataset.delIncome); await saveState(); render();
   }));
@@ -1291,6 +1467,7 @@ function bindGeneral(){
     await saveState(); render();
   }));
 }
+
 
 /* ---------- Cafeteria account ---------- */
 function renderCafeteria(acc){
@@ -1472,7 +1649,10 @@ function renderCafeteria(acc){
             <td class="amt">${fmt(p.qty)}</td>
             <td class="amt">${fmt(p.unitCost)}</td>
             <td class="amt">${fmt(p.total)}</td>
-            <td><button class="del-btn" data-del-purchase="${p.id}">✕</button></td>
+            <td style="white-space:nowrap;display:flex;gap:4px;padding:8px;">
+                <button class="edit-deal-btn" data-edit-purchase="${p.id}" title="تعديل">✏️</button>
+                <button class="del-btn" data-del-purchase="${p.id}">✕</button>
+              </td>
           </tr>`).join('')}
         </tbody>
       </table>
@@ -1530,6 +1710,79 @@ function renderCafeteria(acc){
 
 // cart state (in-memory, not persisted - resets on navigate)
 let posCart = {};
+
+function openEditPurchase(acc, purchaseId){
+  const overlay = document.getElementById('editPurchaseOverlay');
+  const modal   = document.getElementById('editPurchaseModal');
+  const p       = acc.purchases.find(x=>x.id===purchaseId);
+  if(!p) return;
+
+  function calcPreview(){
+    const qty  = parseFloat(document.getElementById('epur-qty')?.value)||0;
+    const cost = parseFloat(document.getElementById('epur-cost')?.value)||0;
+    const el   = document.getElementById('epur-total-preview');
+    if(el) el.textContent = fmt(qty * cost);
+  }
+
+  modal.innerHTML = `
+    <div class="edm-title">✏️ تعديل فاتورة استلام — ${escapeHtml(p.productName)}</div>
+    <div class="edm-row"><label class="edm-lbl">التاريخ</label>
+      <input class="edm-input" id="epur-date" type="date" value="${p.date}"></div>
+    <div class="edm-row"><label class="edm-lbl">اسم البضاعة</label>
+      <input class="edm-input" id="epur-name" type="text" value="${escapeHtml(p.productName)}" list="epurProductList">
+      <datalist id="epurProductList">${acc.products.map(pr=>`<option value="${escapeHtml(pr.name)}">`).join('')}</datalist></div>
+    <div class="edm-row"><label class="edm-lbl">المورد</label>
+      <input class="edm-input" id="epur-supplier" type="text" value="${escapeHtml(p.supplier||'')}"></div>
+    <div class="edm-row"><label class="edm-lbl">الكمية</label>
+      <input class="edm-input" id="epur-qty" type="number" value="${p.qty}" step="0.01" min="0.01"></div>
+    <div class="edm-row"><label class="edm-lbl">سعر الشراء للوحدة</label>
+      <input class="edm-input" id="epur-cost" type="number" value="${p.unitCost}" step="0.01" min="0"></div>
+    <div class="edm-result">
+      <span class="edm-result-lbl">إجمالي الفاتورة</span>
+      <span class="edm-result-val" id="epur-total-preview">${fmt(p.total)}</span>
+    </div>
+    <div class="edm-actions">
+      <button class="edm-cancel" id="epur-cancel">إلغاء</button>
+      <button class="edm-save" id="epur-save">✔ حفظ التعديلات</button>
+    </div>
+  `;
+
+  overlay.classList.add('open');
+  ['epur-qty','epur-cost'].forEach(id=>
+    document.getElementById(id)?.addEventListener('input', calcPreview));
+
+  document.getElementById('epur-cancel').onclick = ()=> overlay.classList.remove('open');
+
+  document.getElementById('epur-save').onclick = async ()=>{
+    const date     = document.getElementById('epur-date').value || p.date;
+    const name     = document.getElementById('epur-name').value.trim();
+    const supplier = document.getElementById('epur-supplier').value.trim();
+    const qty      = parseFloat(document.getElementById('epur-qty').value);
+    const unitCost = parseFloat(document.getElementById('epur-cost').value);
+    if(!name || isNaN(qty) || qty<=0 || isNaN(unitCost) || unitCost<0) return;
+
+    // عكس تأثير الشراء القديم على المخزون
+    const oldProduct = acc.products.find(pr=>pr.id===p.productId);
+    if(oldProduct){
+      oldProduct.qty = Math.max(0, oldProduct.qty - p.qty);
+    }
+
+    // تطبيق الشراء الجديد
+    let product = acc.products.find(pr=>pr.name.trim()===name);
+    if(!product){ product={id:uid(),name,qty:0,avgCost:0,sellPrice:0}; acc.products.push(product); }
+    const newQty = product.qty + qty;
+    product.avgCost = newQty>0 ? ((product.qty*product.avgCost)+(qty*unitCost))/newQty : unitCost;
+    product.qty = newQty;
+
+    // تحديث بيانات الفاتورة
+    Object.assign(p, {date, productId:product.id, productName:product.name,
+      supplier, qty, unitCost, total:qty*unitCost});
+
+    overlay.classList.remove('open');
+    await saveState(); render();
+  };
+  overlay.onclick = e=>{ if(e.target===overlay) overlay.classList.remove('open'); };
+}
 
 function bindCafeteria(){
   const acc = getActive();
@@ -1697,6 +1950,10 @@ function bindCafeteria(){
     acc.cafPayments=acc.cafPayments.filter(x=>x.id!==btn.dataset.delCafpay);
     await saveState(); render();
   }));
+  document.querySelectorAll('[data-edit-purchase]').forEach(btn=>{
+    btn.addEventListener('click', ()=> openEditPurchase(acc, btn.dataset.editPurchase));
+  });
+
   document.querySelectorAll('[data-del-purchase]').forEach(btn=>btn.addEventListener('click',async()=>{
     const p=acc.purchases.find(x=>x.id===btn.dataset.delPurchase);
     if(p){ const pr=acc.products.find(x=>x.id===p.productId); if(pr) pr.qty=Math.max(0,pr.qty-p.qty);
