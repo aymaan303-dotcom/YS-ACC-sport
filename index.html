@@ -953,6 +953,21 @@ function loanStatus(acc, loan){
   return {paid, remaining};
 }
 
+/* لو المستلف عنده سلفة قائمة (لسه متسددتش خالص)، تُضاف عليها المبلغ الجديد بدل ما تتفتح سلفة/كارت جديد */
+function addOrIncreaseLoan(acc, date, borrowerName, amount){
+  const existing = acc.loans.find(l =>
+    l.borrowerName.trim().toLowerCase() === borrowerName.trim().toLowerCase() &&
+    loanStatus(acc, l).remaining > 0
+  );
+  if(existing){
+    existing.amount = Number(existing.amount||0) + amount;
+    return existing;
+  }
+  const loan = {id:uid(), date, borrowerName, amount};
+  acc.loans.push(loan);
+  return loan;
+}
+
 function calcTotalsGeneral(acc){
   const sum = arr => arr.reduce((s,x)=>s+Number(x.amount||0),0);
   const income = sum(acc.income);
@@ -2718,7 +2733,7 @@ function bindLoans(){
     const borrowerName=document.getElementById('loanBorrower').value.trim();
     const amount=parseFloat(document.getElementById('loanAmount').value);
     if(!borrowerName||isNaN(amount)||amount<=0) return;
-    acc.loans.push({id:uid(),date,borrowerName,amount});
+    addOrIncreaseLoan(acc, date, borrowerName, amount);
     await saveState(); render();
   });
 
@@ -2827,7 +2842,7 @@ function openLoanDetail(acc, loanId){
       const date = document.getElementById('ldmLoanDate').value || todayStr();
       const amount = parseFloat(document.getElementById('ldmLoanAmount').value);
       if(isNaN(amount) || amount<=0) return;
-      acc.loans.push({id:uid(), date, borrowerName:loan.borrowerName, amount});
+      loan.amount = Number(loan.amount||0) + amount;
       await saveState();
       renderLoanModal();
     };
