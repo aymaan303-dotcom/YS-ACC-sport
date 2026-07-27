@@ -511,6 +511,47 @@
     align-items:center;justify-content:center;z-index:950;padding:16px;
   }
   #custInstallOverlay.open{display:flex;}
+  #loanDetailOverlay{
+    position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;
+    align-items:center;justify-content:center;z-index:950;padding:16px;
+  }
+  #loanDetailOverlay.open{display:flex;}
+  .ldm-body{padding:16px 20px 4px;overflow-y:auto;flex:1;}
+  .ldm-stats{display:flex;gap:10px;margin-bottom:16px;}
+  .ldm-stat{flex:1;background:#1f2937;border-radius:12px;padding:12px;text-align:center;}
+  .ldm-stat-lbl{font-size:11px;color:#6b7280;margin-bottom:4px;}
+  .ldm-stat-val{font-size:16px;font-weight:900;}
+  .ldm-actions{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
+  .ldm-action-btn{
+    flex:1;min-width:130px;border:none;border-radius:10px;padding:11px 14px;
+    color:#fff;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit;
+  }
+  .ldm-panel{
+    background:#1f2937;border-radius:12px;padding:0;margin-bottom:14px;overflow:hidden;
+    max-height:0;transition:max-height .25s ease, padding .2s ease;
+  }
+  .ldm-panel.open{max-height:300px;padding:14px;}
+  .ldm-panel input{
+    width:100%;box-sizing:border-box;border:1.5px solid #374151;border-radius:8px;
+    padding:9px 12px;font-family:inherit;font-size:13px;background:#111827;color:#f9fafb;
+    margin-bottom:8px;
+  }
+  .ldm-panel input:focus{outline:none;border-color:#3b82f6;}
+  .ldm-panel button{
+    width:100%;border:none;border-radius:8px;padding:10px;font-weight:700;
+    cursor:pointer;font-family:inherit;color:#fff;font-size:13px;
+  }
+  .ldm-sub-title{color:#9ca3af;font-size:12px;font-weight:700;margin:14px 0 8px;}
+  .ldm-rep-row{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    background:#1f2937;border-radius:10px;padding:10px 14px;margin-bottom:6px;
+  }
+  .ldm-rep-date{color:#6b7280;font-size:11px;}
+  .ldm-rep-amt{color:#34d399;font-weight:800;font-size:13px;}
+  .ldm-rep-del{
+    background:#374151;border:none;color:#f87171;border-radius:50%;
+    width:24px;height:24px;cursor:pointer;font-size:12px;flex-shrink:0;
+  }
   .cust-install-modal{
     background:#111827;border-radius:22px;width:100%;max-width:440px;
     max-height:88vh;display:flex;flex-direction:column;overflow:hidden;
@@ -702,6 +743,10 @@
 
 <div id="custInstallOverlay">
   <div class="cust-install-modal" id="custInstallModal"></div>
+</div>
+
+<div id="loanDetailOverlay">
+  <div class="cust-install-modal" id="loanDetailModal"></div>
 </div>
 
 <div class="app-shell">
@@ -2574,7 +2619,7 @@ function renderLoans(acc){
   const loanCards = acc.loans.map(l=>{
     const st = loanStatus(acc,l);
     return `
-      <div class="balance-card ${st.remaining>0?'owed':'clear'}">
+      <div class="balance-card ${st.remaining>0?'owed':'clear'}" data-loan-id="${l.id}" style="cursor:pointer" title="اضغط لعرض التفاصيل وإضافة سلفة أو تسجيل سداد">
         <div class="balance-name">🤝 ${escapeHtml(l.borrowerName)}</div>
         <div class="balance-row"><span>المبلغ المستلف:</span><span class="amt neg">${fmt(l.amount)}</span></div>
         <div class="balance-row"><span>المدفوع:</span><span class="amt pos">${fmt(st.paid)}</span></div>
@@ -2698,6 +2743,123 @@ function bindLoans(){
     acc.repayments=acc.repayments.filter(p=>p.id!==btn.dataset.delRepayment);
     await saveState(); render();
   }));
+
+  // ── فتح تفاصيل المستلف لما يضغط على البطاقة ──
+  document.querySelectorAll('.balance-card[data-loan-id]').forEach(card=>{
+    card.addEventListener('click', ()=>openLoanDetail(acc, card.dataset.loanId));
+  });
+}
+
+/* ---------- Loan borrower detail modal ---------- */
+function openLoanDetail(acc, loanId){
+  const loan = acc.loans.find(l=>l.id===loanId);
+  if(!loan) return;
+
+  function renderLoanModal(){
+    const st = loanStatus(acc, loan);
+    const repList = acc.repayments.filter(p=>p.loanId===loan.id)
+      .sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+
+    const repRows = repList.length===0
+      ? `<div class="cim-empty">لا توجد مدفوعات بعد</div>`
+      : repList.map(p=>`
+        <div class="ldm-rep-row">
+          <div>
+            <div class="ldm-rep-amt">${fmt(p.amount)}</div>
+            <div class="ldm-rep-date">🗓 ${fmtDate(p.date)}</div>
+          </div>
+          <button class="ldm-rep-del" data-del-rep="${p.id}">✕</button>
+        </div>`).join('');
+
+    document.getElementById('loanDetailModal').innerHTML = `
+      <div class="cim-header">
+        <button class="cim-close" id="closeLdmBtn">✕</button>
+        <span class="cim-title">🤝 ${escapeHtml(loan.borrowerName)}</span>
+      </div>
+      <div class="ldm-body">
+        <div class="ldm-stats">
+          <div class="ldm-stat"><div class="ldm-stat-lbl">المستلف</div><div class="ldm-stat-val" style="color:#f87171">${fmt(loan.amount)}</div></div>
+          <div class="ldm-stat"><div class="ldm-stat-lbl">المسدّد</div><div class="ldm-stat-val" style="color:#34d399">${fmt(st.paid)}</div></div>
+          <div class="ldm-stat"><div class="ldm-stat-lbl">المتبقي</div><div class="ldm-stat-val" style="color:${st.remaining>0?'#f87171':'#34d399'}">${st.remaining>0?fmt(st.remaining):'✅ مسدّد'}</div></div>
+        </div>
+
+        <div class="ldm-actions">
+          <button class="ldm-action-btn" style="background:var(--c-red)" id="ldmToggleNewLoan">➕ سلفة جديدة</button>
+          <button class="ldm-action-btn" style="background:${st.remaining<=0?'#6b7280':'var(--c-green)'}" id="ldmToggleRepay" ${st.remaining<=0?'disabled':''}>💵 تسجيل سداد</button>
+        </div>
+
+        <div class="ldm-panel" id="ldmNewLoanPanel">
+          <input type="date" id="ldmLoanDate" value="${todayStr()}">
+          <input type="number" id="ldmLoanAmount" placeholder="المبلغ المستلف" step="0.01">
+          <button style="background:var(--c-red)" id="ldmSaveNewLoan">✔ حفظ السلفة الجديدة</button>
+        </div>
+
+        <div class="ldm-panel" id="ldmRepayPanel">
+          <input type="date" id="ldmRepayDate" value="${todayStr()}">
+          <input type="number" id="ldmRepayAmount" placeholder="المبلغ المدفوع" step="0.01">
+          <button style="background:var(--c-green)" id="ldmSaveRepay">✔ تسجيل السداد</button>
+        </div>
+
+        <div class="ldm-sub-title">سجل السداد لهذه السلفة</div>
+        ${repRows}
+        <div style="height:8px"></div>
+      </div>
+    `;
+
+    document.getElementById('closeLdmBtn').onclick = ()=>{
+      document.getElementById('loanDetailOverlay').classList.remove('open');
+      render();
+    };
+
+    document.getElementById('ldmToggleNewLoan').onclick = ()=>{
+      document.getElementById('ldmNewLoanPanel').classList.toggle('open');
+      document.getElementById('ldmRepayPanel').classList.remove('open');
+    };
+    const repayToggleBtn = document.getElementById('ldmToggleRepay');
+    if(repayToggleBtn && !repayToggleBtn.disabled){
+      repayToggleBtn.onclick = ()=>{
+        document.getElementById('ldmRepayPanel').classList.toggle('open');
+        document.getElementById('ldmNewLoanPanel').classList.remove('open');
+      };
+    }
+
+    document.getElementById('ldmSaveNewLoan').onclick = async ()=>{
+      const date = document.getElementById('ldmLoanDate').value || todayStr();
+      const amount = parseFloat(document.getElementById('ldmLoanAmount').value);
+      if(isNaN(amount) || amount<=0) return;
+      acc.loans.push({id:uid(), date, borrowerName:loan.borrowerName, amount});
+      await saveState();
+      renderLoanModal();
+    };
+
+    document.getElementById('ldmSaveRepay').onclick = async ()=>{
+      const date = document.getElementById('ldmRepayDate').value || todayStr();
+      const amount = parseFloat(document.getElementById('ldmRepayAmount').value);
+      const curSt = loanStatus(acc, loan);
+      if(isNaN(amount) || amount<=0) return;
+      if(amount > curSt.remaining + 0.01){ alert(`المبلغ أكبر من المتبقي على هذه السلفة (${fmt(curSt.remaining)})`); return; }
+      acc.repayments.push({id:uid(), date, loanId:loan.id, amount});
+      await saveState();
+      renderLoanModal();
+    };
+
+    document.querySelectorAll('[data-del-rep]').forEach(btn=>{
+      btn.addEventListener('click', async ()=>{
+        acc.repayments = acc.repayments.filter(p=>p.id!==btn.dataset.delRep);
+        await saveState();
+        renderLoanModal();
+      });
+    });
+  }
+
+  document.getElementById('loanDetailOverlay').classList.add('open');
+  renderLoanModal();
+  document.getElementById('loanDetailOverlay').onclick = e=>{
+    if(e.target===document.getElementById('loanDetailOverlay')){
+      document.getElementById('loanDetailOverlay').classList.remove('open');
+      render();
+    }
+  };
 }
 
 /* ---------- Reports page ---------- */
