@@ -443,6 +443,13 @@
   }
   .pos-qty-btn:hover{background:rgba(255,255,255,.25);}
   .pos-cart-qty{font-size:14px;font-weight:700;min-width:22px;text-align:center;}
+  .pos-cart-qty-input{
+    font-family:inherit;font-size:14px;font-weight:700;width:44px;text-align:center;
+    background:var(--paper);border:1.5px solid var(--line);border-radius:6px;color:var(--ink);
+    padding:4px 2px;
+  }
+  .pos-cart-qty-input:focus{outline:none;border-color:var(--sidebar-accent);}
+  .pos-cart-qty-input::-webkit-inner-spin-button,.pos-cart-qty-input::-webkit-outer-spin-button{margin-left:2px;}
   .pos-cart-price{font-size:13px;font-weight:700;color:#86efac;white-space:nowrap;}
   .pos-cart-del{background:none;border:none;color:rgba(255,255,255,.4);cursor:pointer;font-size:14px;padding:2px;}
   .pos-cart-del:hover{color:#f87171;}
@@ -2147,7 +2154,7 @@ function renderCart(acc){
         <span class="pos-cart-name">${escapeHtml(item.product.name)}</span>
         <div class="pos-cart-controls">
           <button class="pos-qty-btn" data-dec="${item.product.id}">−</button>
-          <span class="pos-cart-qty">${item.qty}</span>
+          <input type="number" class="pos-cart-qty-input" data-pid="${item.product.id}" value="${item.qty}" min="1" step="any" inputmode="decimal">
           <button class="pos-qty-btn" data-inc="${item.product.id}">+</button>
         </div>
         <span class="pos-cart-price">${fmt(lineTotal)}</span>
@@ -2174,6 +2181,19 @@ function renderCart(acc){
   }));
   container.querySelectorAll('[data-rem]').forEach(btn=>btn.addEventListener('click',()=>{
     delete posCart[btn.dataset.rem]; renderCart(acc);
+  }));
+  container.querySelectorAll('.pos-cart-qty-input').forEach(inp=>inp.addEventListener('change',()=>{
+    const pid = inp.dataset.pid;
+    if(!posCart[pid]) return;
+    const product = acc.products.find(p=>p.id===pid);
+    let val = parseFloat(inp.value);
+    if(isNaN(val) || val<=0){ delete posCart[pid]; renderCart(acc); return; }
+    if(product && val > product.qty){
+      alert(`الكمية المتاحة: ${fmt(product.qty)}`);
+      val = product.qty;
+    }
+    posCart[pid].qty = val;
+    renderCart(acc);
   }));
   container.querySelectorAll('.pos-price-input').forEach(inp=>inp.addEventListener('input',()=>{
     const pid=inp.dataset.pid; if(posCart[pid]) posCart[pid].unitPrice=parseFloat(inp.value)||0; renderCart(acc);
