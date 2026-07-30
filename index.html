@@ -1089,34 +1089,20 @@ function calcCapitalAll(){
 function calcSafeForAcc(acc){
   const opsLedger = buildLedger(acc);
   const cashFromOps = opsLedger.reduce((s,e)=>s+e.amount,0);
-  const capEntries = acc.capitalEntries || [];
-  const cashFromCapital = capEntries.reduce((s,e)=> s + (e.type==='deposit'?Number(e.amount||0):-Number(e.amount||0)), 0);
-  return { cashFromOps, cashFromCapital, balance: cashFromOps + cashFromCapital };
+  return { balance: cashFromOps };
 }
 function calcSafeAll(){
-  let cashFromOps=0, cashFromCapital=0;
+  let balance=0;
   state.accounts.forEach(acc=>{
-    const s = calcSafeForAcc(acc);
-    cashFromOps += s.cashFromOps;
-    cashFromCapital += s.cashFromCapital;
+    balance += calcSafeForAcc(acc).balance;
   });
-  return { cashFromOps, cashFromCapital, balance: cashFromOps + cashFromCapital };
+  return { balance };
 }
 function buildGlobalSafeLedger(){
   let entries = [];
   state.accounts.forEach(acc=>{
     buildLedger(acc).forEach(e=>{
       entries.push({date:e.date, desc:e.desc, type:e.type, amount:e.amount, accName:acc.name, accId:acc.id});
-    });
-    (acc.capitalEntries||[]).forEach(c=>{
-      const isDep = c.type==='deposit';
-      entries.push({
-        date:c.date,
-        desc:c.note ? `${isDep?'إيداع رأس مال':'سحب من رأس المال'}: ${c.note}` : (isDep?'إيداع رأس مال':'سحب من رأس المال'),
-        type: isDep?'إيداع رأس مال':'سحب رأس مال',
-        amount: isDep ? Number(c.amount||0) : -Number(c.amount||0),
-        accName: acc.name, accId: acc.id
-      });
     });
   });
   entries.sort((a,b)=> (a.date||'').localeCompare(b.date||''));
@@ -3314,10 +3300,6 @@ function renderSafe(){
           <span class="report-card-name">${escapeHtml(acc.name)}</span>
           <span class="report-card-net ${s.balance>=0?'pos':'neg'}">${fmt(s.balance)}</span>
         </div>
-        <div class="report-card-rows">
-          <div class="report-card-row"><span>من العمليات</span><span class="amt ${s.cashFromOps>=0?'pos':'neg'}">${fmt(s.cashFromOps)}</span></div>
-          <div class="report-card-row"><span>من رأس المال</span><span class="amt ${s.cashFromCapital>=0?'pos':'neg'}">${fmt(s.cashFromCapital)}</span></div>
-        </div>
       </div>`;
   }).join('') || '';
 
@@ -3342,7 +3324,7 @@ function renderSafe(){
   return `
     <div class="combined">
       <div class="combined-card" style="background:linear-gradient(135deg,#8a6d1f,#c7cad1);grid-column:1 / -1;">
-        <div class="lbl">🗄️ رصيد الخزنة الإجمالي (كل الحسابات + رأس المال)</div>
+        <div class="lbl">🗄️ رصيد الخزنة الإجمالي (كل الحسابات — نقدي فقط)</div>
         <div class="val">${fmt(all.balance)}</div>
       </div>
     </div>
