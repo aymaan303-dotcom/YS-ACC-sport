@@ -48,7 +48,7 @@
       radial-gradient(ellipse 900px 500px at 15% -10%, rgba(212,175,55,.08), transparent 60%),
       radial-gradient(ellipse 700px 500px at 100% 0%, rgba(199,202,209,.05), transparent 55%),
       var(--bg);
-    color:var(--ink);font-family:'Tajawal',sans-serif;font-size:14px;
+    color:var(--ink);font-family:'Tajawal',sans-serif;font-size:14px;font-weight:500;
   }
 
   /* ── App shell ── */
@@ -832,7 +832,7 @@ let state = { accounts: [], activeId: null };
 let safeFilterAccId = 'all';
 let isSavingLocally = false; // prevents our own save from triggering a redundant re-render
 
-function fmt(n){ return new Intl.NumberFormat('ar-EG', {minimumFractionDigits:0, maximumFractionDigits:2}).format(n || 0); }
+function fmt(n){ return new Intl.NumberFormat('en-US', {minimumFractionDigits:0, maximumFractionDigits:2}).format(n || 0); }
 function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 function todayStr(){ return new Date().toISOString().slice(0,10); }
 function fmtDate(d){
@@ -1133,7 +1133,7 @@ function render(){
   const topbarDate = document.getElementById('topbarDate');
   if(topbarDate){
     const d = new Date();
-    topbarDate.textContent = d.toLocaleDateString('ar-EG', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+    topbarDate.textContent = d.toLocaleDateString('ar-EG-u-nu-latn', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
   }
 
   const app = document.getElementById('app');
@@ -3381,7 +3381,11 @@ function buildLedger(acc){
   let entries = [];
   if(acc.type === 'cafeteria'){
     acc.purchases.forEach(p => entries.push({date:p.date, desc:`شراء بضاعة: ${p.productName} (${fmt(p.qty)} وحدة)`, type:'شراء', amount:-p.total}));
-    acc.sales.forEach(s => entries.push({date:s.date, desc:`بيع بضاعة: ${s.productName} (${fmt(s.qty)} وحدة)`, type:'بيع', amount:+s.total}));
+    acc.sales.forEach(s => {
+      if(s.payType === 'credit') return; // بيع آجل: مش فلوس فعلية لحد ما يتحصّل
+      entries.push({date:s.date, desc:`بيع بضاعة (نقدي): ${s.productName} (${fmt(s.qty)} وحدة)`, type:'بيع نقدي', amount:+s.total});
+    });
+    acc.cafPayments.forEach(p => entries.push({date:p.date, desc:`تحصيل آجل من: ${p.customer}`, type:'تحصيل آجل', amount:+p.amount}));
     acc.cafExpenses.forEach(e => entries.push({date:e.date, desc:e.desc, type:e.kind==='buy'?'مصروف شراء':'مصروف بيع', amount:-e.amount}));
   } else if(acc.type === 'installment'){
     acc.deals.forEach(d => {
