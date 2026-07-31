@@ -386,6 +386,52 @@
     .stat-val{font-size:14px;}
   }
 
+  /* ── Revenue calendar (متابعة الإيراد اليومي) ── */
+  .revcal-nav{display:flex;align-items:center;gap:10px;}
+  .revcal-nav-btn{
+    background:var(--paper);border:1.5px solid var(--line);color:var(--ink);
+    border-radius:7px;width:26px;height:26px;font-size:15px;font-weight:800;
+    cursor:pointer;font-family:inherit;line-height:1;
+  }
+  .revcal-nav-btn:hover{border-color:var(--sidebar-accent);color:var(--sidebar-accent);}
+  .revcal-label{font-weight:800;font-size:13px;min-width:90px;text-align:center;}
+  .revcal-alert{
+    background:rgba(179,64,47,.12);border-bottom:1px solid rgba(179,64,47,.3);
+    color:#e8a49a;font-weight:700;font-size:12.5px;padding:10px 18px;
+  }
+  .revcal-summary{
+    padding:9px 18px;font-size:12px;font-weight:700;color:#e8a49a;
+    background:rgba(179,64,47,.06);border-bottom:1px solid var(--line);
+  }
+  .revcal-summary.ok{color:#7be3a6;background:rgba(47,158,99,.07);}
+  .revcal-weekdays{
+    display:grid;grid-template-columns:repeat(7,1fr);gap:5px;
+    padding:10px 12px 0;font-size:10.5px;color:var(--ink-soft);font-weight:700;text-align:center;
+  }
+  .revcal-grid{
+    display:grid;grid-template-columns:repeat(7,1fr);gap:5px;padding:8px 12px 14px;
+  }
+  .revcal-cell{
+    aspect-ratio:1/1;border-radius:8px;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;font-size:11px;gap:2px;
+    background:var(--paper-alt);border:1px solid var(--line);position:relative;
+  }
+  .revcal-cell.empty{background:transparent;border:none;}
+  .revcal-num{font-weight:700;font-size:12px;}
+  .revcal-cell.rc-done{background:rgba(47,158,99,.14);border-color:rgba(47,158,99,.4);}
+  .revcal-cell.rc-done .revcal-num{color:#7be3a6;}
+  .revcal-amt{font-size:9px;font-weight:700;color:#7be3a6;}
+  .revcal-cell.rc-missing{background:rgba(179,64,47,.12);border-color:rgba(179,64,47,.4);cursor:pointer;}
+  .revcal-cell.rc-missing:hover{background:rgba(179,64,47,.22);}
+  .revcal-cell.rc-missing .revcal-num{color:#e8a49a;}
+  .revcal-warn{font-size:10px;color:#e8a49a;}
+  .revcal-cell.rc-future{opacity:.35;}
+  .revcal-cell.rc-today{box-shadow:0 0 0 2px var(--sidebar-accent) inset;}
+  @media(max-width:480px){
+    .revcal-amt{display:none;}
+    .revcal-weekdays{font-size:9px;}
+  }
+
   /* ── Monthly total banner (installment) ── */
   .monthly-total-banner{
     background:linear-gradient(135deg,#a6791f,#d4af37);
@@ -1330,6 +1376,79 @@ function bindActionBar(){
 
 /* ---------- General account ---------- */
 /* ---------- General account ---------- */
+/* ---------- متابعة الإيراد اليومي (تقويم) ---------- */
+function shiftYm(ym, delta){
+  const [y,m] = ym.split('-').map(Number);
+  const d = new Date(y, m-1+delta, 1);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+}
+function daysInYm(ym){
+  const [y,m] = ym.split('-').map(Number);
+  return new Date(y, m, 0).getDate();
+}
+function buildIncomeDayMap(acc, ym){
+  const map = {};
+  acc.income.forEach(it=>{
+    if((it.date||'').slice(0,7) === ym) map[it.date] = (map[it.date]||0) + Number(it.amount||0);
+  });
+  return map;
+}
+function renderRevenueCalendar(acc){
+  const today = todayStr();
+  const ym = /^\d{4}-\d{2}$/.test(acc._revCalMonth||'') ? acc._revCalMonth : today.slice(0,7);
+  const [y,m] = ym.split('-').map(Number);
+  const dim = daysInYm(ym);
+  const dayMap = buildIncomeDayMap(acc, ym);
+  const firstOffset = (new Date(y, m-1, 1).getDay() + 1) % 7; // 0=سبت
+
+  let missingCount = 0;
+  const cells = [];
+  for(let i=0;i<firstOffset;i++) cells.push('<div class="revcal-cell empty"></div>');
+  for(let d=1; d<=dim; d++){
+    const dateStr = `${ym}-${String(d).padStart(2,'0')}`;
+    const amt = dayMap[dateStr];
+    const isFuture = dateStr > today;
+    const isToday = dateStr === today;
+    let cls = 'revcal-cell';
+    let inner = `<span class="revcal-num">${d}</span>`;
+    if(amt !== undefined){
+      cls += ' rc-done';
+      inner += `<span class="revcal-amt">${fmt(amt)}</span>`;
+    } else if(isFuture){
+      cls += ' rc-future';
+    } else {
+      cls += ' rc-missing';
+      inner += `<span class="revcal-warn">لا يوجد</span>`;
+      missingCount++;
+    }
+    if(isToday) cls += ' rc-today';
+    const dataAttr = (amt===undefined && !isFuture) ? ` data-quick-date="${dateStr}"` : '';
+    cells.push(`<div class="${cls}"${dataAttr}>${inner}</div>`);
+  }
+
+  const monthNames = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+  const label = `${monthNames[m-1]} ${y}`;
+  const showTodayAlert = ym === today.slice(0,7) && dayMap[today] === undefined;
+
+  return `
+    <div class="section revcal-section">
+      <div class="section-head">
+        <div class="title"><span class="dot income"></span>متابعة الإيراد اليومي</div>
+        <div class="revcal-nav">
+          <button class="revcal-nav-btn" data-cal-move="-1" type="button">‹</button>
+          <span class="revcal-label">${label}</span>
+          <button class="revcal-nav-btn" data-cal-move="1" type="button">›</button>
+        </div>
+      </div>
+      ${showTodayAlert ? `<div class="revcal-alert">⚠ النهاردة (${fmtDate(today)}) لسه ملهوش إيراد متسجل — اضغط عليه تحت للتسجيل السريع</div>` : ''}
+      ${missingCount>0
+        ? `<div class="revcal-summary">⚠ ${missingCount} يوم في الشهر ده لسه من غير إيراد مسجل</div>`
+        : `<div class="revcal-summary ok">✅ كل الأيام اللي فاتت في الشهر ده متسجل ليها إيراد</div>`}
+      <div class="revcal-weekdays"><span>سبت</span><span>أحد</span><span>اثنين</span><span>ثلاثاء</span><span>أربعاء</span><span>خميس</span><span>جمعة</span></div>
+      <div class="revcal-grid">${cells.join('')}</div>
+    </div>`;
+}
+
 function renderGeneral(acc){
   const t = calcTotalsGeneral(acc);
   const incSorted = [...acc.income].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
@@ -1385,8 +1504,8 @@ function renderGeneral(acc){
     <div class="action-panel" id="panel-income">
       <div class="action-panel-inner">
         <input type="date" id="incDate" class="date-input" value="${todayStr()}">
-        <input type="text" id="incDesc" placeholder="البيان">
-        <input type="number" id="incAmount" placeholder="المبلغ" step="0.01">
+        <input type="text" id="incDesc" placeholder="البيان" value="إيراد يومي">
+        <input type="number" id="incAmount" placeholder="المبلغ" step="0.01" autofocus>
         <button id="addIncBtn" style="background:var(--c-green)">✔ حفظ</button>
       </div>
     </div>
@@ -1447,6 +1566,8 @@ function renderGeneral(acc){
     ${acc.employees.length>0?`
     <div class="balances-title">👥 موظفو الملعب — السلف والمرتبات</div>
     <div class="balances-grid" style="margin-bottom:18px;">${empCards}</div>`:''}
+
+    ${renderRevenueCalendar(acc)}
 
     <div class="section income-section">
       <div class="section-head"><div class="title"><span class="dot income"></span>الإيرادات</div><div class="total">${fmt(t.income)}</div></div>
@@ -1594,6 +1715,28 @@ function bindGeneral(){
 
     acc.salary.push({id:uid(), date, desc:empName, amount, advance:deduct, deduct, cat:'مرتب', empId:actualEmpId});
     await saveState(); render();
+  });
+
+  // تقويم متابعة الإيراد اليومي — التنقل بين الشهور
+  document.querySelectorAll('.revcal-nav-btn[data-cal-move]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const base = /^\d{4}-\d{2}$/.test(acc._revCalMonth||'') ? acc._revCalMonth : todayStr().slice(0,7);
+      acc._revCalMonth = shiftYm(base, parseInt(btn.dataset.calMove,10));
+      render();
+    });
+  });
+
+  // تقويم متابعة الإيراد اليومي — تسجيل سريع بالضغط على يوم ناقص
+  document.querySelectorAll('.revcal-cell[data-quick-date]').forEach(cell=>{
+    cell.addEventListener('click', ()=>{
+      document.querySelectorAll('.action-panel').forEach(p=>p.classList.toggle('open', p.id==='panel-income'));
+      document.querySelector('.action-btn[data-panel="panel-income"]')?.classList.add('active');
+      const dateInput = document.getElementById('incDate');
+      const amountInput = document.getElementById('incAmount');
+      if(dateInput) dateInput.value = cell.dataset.quickDate;
+      document.getElementById('panel-income')?.scrollIntoView({behavior:'smooth', block:'center'});
+      amountInput?.focus();
+    });
   });
 
   // إيراد
