@@ -1173,7 +1173,7 @@ function logout(){
   showLockScreen();
 }
 
-
+function setConnStatus(ok){
   const el = document.getElementById('connStatus');
   if(!el) return;
   el.textContent = ok ? '🟢 متصل — البيانات مباشرة لجميع المستخدمين' : '🔴 غير متصل — تحقق من الإنترنت';
