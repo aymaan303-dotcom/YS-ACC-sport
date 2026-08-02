@@ -1013,6 +1013,30 @@ const firebaseConfig = {
 
 const fbApp = initializeApp(firebaseConfig);
 const db = getFirestore(fbApp);
+
+/* ── منع تكرار تسجيل الحركة عند الضغط أكتر من مرة بسرعة على نفس الزر ──
+   بيتجاهل الضغطة التانية على نفس الزر لو جت خلال أقل من 1.2 ثانية،
+   وبيستثني أزرار الاستخدام السريع الطبيعي (اختيار منتج، تبديل تبويب، فلتر) ── */
+const __recentClicks = new WeakMap();
+document.addEventListener('click', (e)=>{
+  const btn = e.target.closest('button');
+  if(!btn) return;
+  const skip = btn.classList.contains('pos-product-btn')
+    || btn.classList.contains('pos-pay-btn')
+    || btn.classList.contains('action-btn')
+    || btn.classList.contains('filter-btn')
+    || btn.hasAttribute('data-pid')
+    || btn.hasAttribute('data-del-row');
+  if(skip) return;
+  const now = Date.now();
+  const last = __recentClicks.get(btn) || 0;
+  if(now - last < 1200){
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    return;
+  }
+  __recentClicks.set(btn, now);
+}, true);
 const STATE_DOC = doc(db, 'accounts-app', 'main-state');
 
 let state = { accounts: [], activeId: null };
@@ -1036,6 +1060,8 @@ function ensureUsers(){
   }
   if(!Array.isArray(state.custodyLog)) state.custodyLog = [];
   if(!Array.isArray(state.settleRequests)) state.settleRequests = [];
+  if(!Array.isArray(state.pendingCafSales)) state.pendingCafSales = [];
+  if(!Array.isArray(state.pendingDeletions)) state.pendingDeletions = [];
 }
 
 function custodyBalance(userId){
@@ -1045,6 +1071,76 @@ function custodyBalance(userId){
 async function pushCustody(userId, amount, source, desc){
   if(!userId || !amount) return;
   state.custodyLog.push({id:uid(), userId, amount, source, desc, date: todayStr()});
+}
+
+/* ── نظام موافقة المدير على مسح أي حركة (مشترك بين كل أنواع الحسابات) ── */
+async function requestDeletion(acc, kind, refId, summary){
+  state.pendingDeletions.push({id:uid(), accId:acc.id, accName:acc.name, kind, refId, summary,
+    userId:currentUser.id, userName:currentUser.name, date:todayStr(), status:'pending'});
+  await saveState();
+  showEmpConfirm('⏳ اتبعت طلب المسح للمدير — في انتظار الموافقة');
+  render();
+}
+
+function performDeletion(acc, d){
+  if(d.kind==='cafSale'){
+    const s = acc.sales.find(x=>x.id===d.refId);
+    if(s){ const pr=acc.products.find(x=>x.id===s.productId); if(pr) pr.qty += s.qty;
+      acc.sales = acc.sales.filter(x=>x.id!==s.id); }
+  } else if(d.kind==='cafPayment'){
+    acc.cafPayments = acc.cafPayments.filter(x=>x.id!==d.refId);
+  } else if(d.kind==='income'){
+    acc.income = acc.income.filter(x=>x.id!==d.refId);
+  } else if(d.kind==='expense'){
+    acc.expense = acc.expense.filter(x=>x.id!==d.refId);
+  } else if(d.kind==='salary'){
+    acc.salary = acc.salary.filter(x=>x.id!==d.refId);
+  }
+}
+
+function bindDeletionApprovals(acc){
+  document.querySelectorAll('[data-approve-del]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const d = state.pendingDeletions.find(x=>x.id===btn.dataset.approveDel);
+      if(!d) return;
+      performDeletion(acc, d);
+      d.status = 'approved';
+      await saveState(); render();
+    });
+  });
+  document.querySelectorAll('[data-reject-del]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const d = state.pendingDeletions.find(x=>x.id===btn.dataset.rejectDel);
+      if(!d) return;
+      d.status = 'rejected';
+      await saveState(); render();
+    });
+  });
+}
+
+function pendingDeletionsPanel(acc){
+  const accPendingDeletions = state.pendingDeletions.filter(d=>d.accId===acc.id && d.status==='pending');
+  if(accPendingDeletions.length===0) return '';
+  return `
+    <div class="section" style="padding:16px;margin-bottom:16px;border:1.5px solid var(--c-red);border-radius:12px;">
+      <div class="balances-title" style="margin-top:0;">🗑 طلبات مسح حركات بانتظار الموافقة (${accPendingDeletions.length})</div>
+      ${accPendingDeletions.map(d=>`
+        <div class="settle-req-row">
+          <div class="settle-req-info">
+            <b>${escapeHtml(d.userName)}</b> — ${escapeHtml(d.summary)} — ${fmtDate(d.date)}
+          </div>
+          <div class="settle-req-actions">
+            <button class="settle-approve-btn" data-approve-del="${d.id}">✔ موافقة على المسح</button>
+            <button class="settle-reject-btn" data-reject-del="${d.id}">✕ رفض</button>
+          </div>
+        </div>
+      `).join('')}
+    </div>`;
+}
+
+function myPendingDelBadge(kind, refId){
+  const req = state.pendingDeletions.find(d=>d.kind===kind && d.refId===refId && d.status==='pending');
+  return req ? `<span style="font-size:11.5px;color:var(--ink-soft);font-weight:700;">⏳ طلب المسح قيد المراجعة</span>` : null;
 }
 
 function fmt(n){ return new Intl.NumberFormat('en-US', {minimumFractionDigits:0, maximumFractionDigits:2}).format(n || 0); }
@@ -1792,6 +1888,36 @@ function renderGeneral(acc){
   if(isEmployee()){
     const confirmMsg = empConfirmMsg;
     empConfirmMsg = '';
+
+    const myInc = acc.income.filter(x=>x.createdBy===currentUser.id).sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,15);
+    const myExp = acc.expense.filter(x=>x.createdBy===currentUser.id).sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,15);
+    const mySal = acc.salary.filter(x=>x.createdBy===currentUser.id).sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,15);
+    const myMovesHtml = (myInc.length===0 && myExp.length===0 && mySal.length===0) ? '' : `
+      <div class="section" style="padding:16px;margin-top:20px;">
+        <div class="balances-title" style="margin-top:0;">🧾 آخر حركاتك</div>
+        ${myInc.map(x=>{
+          const badge = myPendingDelBadge('income', x.id);
+          return `<div class="settle-req-row">
+            <div class="settle-req-info">إيراد: ${escapeHtml(x.desc)} — ${fmt(x.amount)} — ${fmtDate(x.date)}</div>
+            ${badge || `<button class="del-btn" data-req-del-income="${x.id}">🗑 طلب مسح</button>`}
+          </div>`;
+        }).join('')}
+        ${myExp.map(x=>{
+          const badge = myPendingDelBadge('expense', x.id);
+          return `<div class="settle-req-row">
+            <div class="settle-req-info">مصروف: ${escapeHtml(x.desc)} — ${fmt(x.amount)} — ${fmtDate(x.date)}</div>
+            ${badge || `<button class="del-btn" data-req-del-expense="${x.id}">🗑 طلب مسح</button>`}
+          </div>`;
+        }).join('')}
+        ${mySal.map(x=>{
+          const badge = myPendingDelBadge('salary', x.id);
+          return `<div class="settle-req-row">
+            <div class="settle-req-info">مرتب: ${escapeHtml(x.desc)} — ${fmt(x.amount)} — ${fmtDate(x.date)}</div>
+            ${badge || `<button class="del-btn" data-req-del-salary="${x.id}">🗑 طلب مسح</button>`}
+          </div>`;
+        }).join('')}
+      </div>`;
+
     return `
       <div class="action-bar">
         <button class="action-btn green"  data-panel="panel-income">➕ إيراد</button>
@@ -1836,6 +1962,7 @@ function renderGeneral(acc){
       </div>
 
       <div id="empEntryConfirm" class="revcal-summary ok" style="${confirmMsg?'':'display:none;'}margin-top:14px;border-radius:12px;">${escapeHtml(confirmMsg)}</div>
+      ${myMovesHtml}
 
       ${renderRevenueCalendar(acc, true)}
     `;
@@ -1858,6 +1985,7 @@ function renderGeneral(acc){
   }).join('') || '<div class="balance-empty">أضف موظفين لمتابعة سلفهم ومرتباتهم</div>';
 
   return `
+    ${pendingDeletionsPanel(acc)}
     <div class="stats-bar">
       <div class="stat-item"><span class="stat-lbl">الإيرادات</span><span class="stat-val pos">${fmt(t.income)}</span></div>
       <div class="stat-sep"></div>
@@ -2149,7 +2277,7 @@ function bindGeneral(){
     render();
   });
 
-  // حذف إيراد / مصروف
+  // حذف إيراد / مصروف (المدير فقط — مباشر)
   document.querySelectorAll('[data-del-income]').forEach(b=>b.addEventListener('click',async()=>{
     acc.income=acc.income.filter(x=>x.id!==b.dataset.delIncome); await saveState(); render();
   }));
@@ -2159,6 +2287,32 @@ function bindGeneral(){
     else acc.expense=acc.expense.filter(x=>x.id!==id);
     await saveState(); render();
   }));
+
+  // الموظف: طلب مسح إيراد/مصروف/مرتب — يحتاج موافقة المدير
+  document.querySelectorAll('[data-req-del-income]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const x = acc.income.find(v=>v.id===btn.dataset.reqDelIncome);
+      if(!x) return;
+      await requestDeletion(acc, 'income', x.id, `إيراد: ${x.desc} — ${fmt(x.amount)}`);
+    });
+  });
+  document.querySelectorAll('[data-req-del-expense]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const x = acc.expense.find(v=>v.id===btn.dataset.reqDelExpense);
+      if(!x) return;
+      await requestDeletion(acc, 'expense', x.id, `مصروف: ${x.desc} — ${fmt(x.amount)}`);
+    });
+  });
+  document.querySelectorAll('[data-req-del-salary]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const x = acc.salary.find(v=>v.id===btn.dataset.reqDelSalary);
+      if(!x) return;
+      await requestDeletion(acc, 'salary', x.id, `مرتب: ${x.desc} — ${fmt(x.amount)}`);
+    });
+  });
+
+  // المدير: موافقة/رفض طلبات المسح
+  bindDeletionApprovals(acc);
 }
 
 
@@ -2199,7 +2353,46 @@ function renderCafeteria(acc){
   if(isEmployee()){
     const confirmMsg = empConfirmMsg;
     empConfirmMsg = '';
+    const myPending = state.pendingCafSales.filter(r=>r.accId===acc.id && r.userId===currentUser.id && r.status==='pending');
+    const myPendingHtml = myPending.length===0 ? '' : `
+      <div class="section" style="padding:14px;margin-bottom:16px;border:1.5px dashed var(--c-yellow);border-radius:12px;">
+        <div style="font-weight:800;margin-bottom:8px;">⏳ فواتير بانتظار موافقة المدير</div>
+        ${myPending.map(r=>`
+          <div style="font-size:12.5px;padding:5px 0;border-top:1px dashed var(--line);">
+            ${escapeHtml(r.customer||'عميل نقدي')} — ${fmt(r.items.reduce((s,x)=>s+x.total,0))} — ${r.payType==='credit'?'📋 آجل':'💵 نقدي'}
+          </div>`).join('')}
+      </div>`;
+    const custCardsEmp = currentUser.canViewCafCustomers && custCards
+      ? `<div class="balances-title" style="margin-top:0;">👤 حساب العملاء</div><div class="balances-grid" style="margin-bottom:20px;">${custCards}</div>` : '';
+
+    /* آخر حركاته (بيع/تحصيل) مع إمكانية طلب مسح — الحذف الفعلي يحتاج موافقة المدير */
+    const myDelReq = (kind, refId)=> state.pendingDeletions.find(d=>d.kind===kind && d.refId===refId && d.status==='pending');
+    const mySales = acc.sales.filter(s=>s.createdBy===currentUser.id).sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,15);
+    const myPays  = acc.cafPayments.filter(p=>p.createdBy===currentUser.id).sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,15);
+    const myMovesHtml = (mySales.length===0 && myPays.length===0) ? '' : `
+      <div class="section" style="padding:16px;margin-top:20px;">
+        <div class="balances-title" style="margin-top:0;">🧾 آخر حركاتك</div>
+        ${mySales.map(s=>{
+          const req = myDelReq('cafSale', s.id);
+          return `<div class="settle-req-row">
+            <div class="settle-req-info">بيع: ${escapeHtml(s.productName)} ×${fmt(s.qty)} — ${escapeHtml(s.customer||'نقدي')} — ${fmt(s.total)} — ${fmtDate(s.date)}</div>
+            ${req ? `<span style="font-size:11.5px;color:var(--ink-soft);font-weight:700;">⏳ طلب المسح قيد المراجعة</span>`
+                  : `<button class="del-btn" data-req-del-sale="${s.id}">🗑 طلب مسح</button>`}
+          </div>`;
+        }).join('')}
+        ${myPays.map(p=>{
+          const req = myDelReq('cafPayment', p.id);
+          return `<div class="settle-req-row">
+            <div class="settle-req-info">تحصيل من ${escapeHtml(p.customer)} — ${fmt(p.amount)} — ${fmtDate(p.date)}</div>
+            ${req ? `<span style="font-size:11.5px;color:var(--ink-soft);font-weight:700;">⏳ طلب المسح قيد المراجعة</span>`
+                  : `<button class="del-btn" data-req-del-cafpay="${p.id}">🗑 طلب مسح</button>`}
+          </div>`;
+        }).join('')}
+      </div>`;
+
     return `
+      ${myPendingHtml}
+      ${custCardsEmp}
       <div class="pos-shell">
         <div class="pos-products">
           <div class="pos-section-title">🛒 اختر منتج</div>
@@ -2236,10 +2429,34 @@ function renderCafeteria(acc){
       </div>
 
       <div id="empEntryConfirm" class="revcal-summary ok" style="${confirmMsg?'':'display:none;'}margin-top:14px;border-radius:12px;">${escapeHtml(confirmMsg)}</div>
+      ${myMovesHtml}
     `;
   }
 
+  const accPendingSales = state.pendingCafSales.filter(r=>r.accId===acc.id && r.status==='pending');
+  const pendingSalesHtml = accPendingSales.length===0 ? '' : `
+    <div class="section" style="padding:16px;margin-bottom:16px;border:1.5px solid var(--c-yellow);border-radius:12px;">
+      <div class="balances-title" style="margin-top:0;">⏳ طلبات بيع بانتظار الموافقة (${accPendingSales.length})</div>
+      ${accPendingSales.map(r=>`
+        <div class="settle-req-row">
+          <div class="settle-req-info">
+            <b>${escapeHtml(r.userName)}</b> — ${escapeHtml(r.customer||'عميل نقدي')} — ${r.payType==='credit'?'📋 آجل':'💵 نقدي'} — ${fmtDate(r.date)}
+            <div style="color:var(--ink-soft);margin-top:2px;">${r.items.map(it=>`${escapeHtml(it.productName)} ×${fmt(it.qty)}`).join('، ')}</div>
+            <div style="font-weight:700;margin-top:2px;">الإجمالي: ${fmt(r.items.reduce((s,x)=>s+x.total,0))}</div>
+          </div>
+          <div class="settle-req-actions">
+            <button class="settle-approve-btn" data-approve-sale="${r.id}">✔ موافقة</button>
+            <button class="settle-reject-btn" data-reject-sale="${r.id}">✕ رفض</button>
+          </div>
+        </div>
+      `).join('')}
+    </div>`;
+
+  const pendingDeletionsHtml = pendingDeletionsPanel(acc);
+
   return `
+    ${pendingSalesHtml}
+    ${pendingDeletionsHtml}
     <div class="stats-bar">
       <div class="stat-item"><span class="stat-lbl">المبيعات</span><span class="stat-val pos">${fmt(t.salesRevenue)}</span></div>
       <div class="stat-sep"></div>
@@ -2567,11 +2784,37 @@ function bindCafeteria(){
     const date = document.getElementById('posDate').value || todayStr();
     const customer = document.getElementById('posCustomer').value.trim();
     const payType = posPayType; // cash | credit
+
+    // تحقق من توفر الكمية قبل أي حفظ (سواء مباشر أو للموافقة)
+    for(const item of items){
+      const product = acc.products.find(p=>p.id===item.product.id);
+      if(!product || item.qty > product.qty){
+        alert(`الكمية المتاحة من "${item.product.name}" هي ${fmt(product?product.qty:0)} فقط`); return;
+      }
+    }
+
+    // ── الموظف اللي عليه قفل الموافقة: تتبعت الفاتورة للمدير من غير خصم مخزون ──
+    if(isEmployee() && currentUser.needsSaleApproval){
+      const reqItems = items.map(item=>{
+        const product = acc.products.find(p=>p.id===item.product.id);
+        return {productId:product.id, productName:product.name, qty:item.qty, unitPrice:item.unitPrice, total:item.qty*item.unitPrice};
+      });
+      const cashTotal = payType==='cash' ? reqItems.reduce((s,x)=>s+x.total,0) : 0;
+      state.pendingCafSales.push({
+        id:uid(), accId:acc.id, accName:acc.name, date, customer, payType, items:reqItems, cashTotal,
+        userId:currentUser.id, userName:currentUser.name, status:'pending', requestedAt: Date.now()
+      });
+      posCart = {};
+      await saveState();
+      showEmpConfirm('⏳ اتبعتت الفاتورة للمدير — في انتظار الموافقة');
+      render();
+      return;
+    }
+
     let cashTotal = 0;
     for(const item of items){
       const product = acc.products.find(p=>p.id===item.product.id);
       if(!product) continue;
-      if(item.qty > product.qty){ alert(`الكمية المتاحة من "${product.name}" هي ${fmt(product.qty)} فقط`); return; }
       const cogs = item.qty * product.avgCost;
       product.qty -= item.qty;
       const total = item.qty*item.unitPrice;
@@ -2586,6 +2829,60 @@ function bindCafeteria(){
     if(isEmployee()) showEmpConfirm(`✔ اتسجلت الفاتورة${cashTotal>0?` — استلمت ${fmt(cashTotal)}`:''}`);
     render();
   });
+
+  // ── المدير: موافقة/رفض طلبات بيع الكافيتريا المعلّقة ──
+  document.querySelectorAll('[data-approve-sale]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const r = state.pendingCafSales.find(x=>x.id===btn.dataset.approveSale);
+      if(!r) return;
+      for(const it of r.items){
+        const product = acc.products.find(p=>p.id===it.productId);
+        if(!product || it.qty > product.qty){
+          alert(`الكمية المتاحة من "${it.productName}" مش كافية دلوقتي (${product?fmt(product.qty):0}) — البضاعة اتغيرت من وقت الطلب`);
+          return;
+        }
+      }
+      let cashTotal = 0;
+      for(const it of r.items){
+        const product = acc.products.find(p=>p.id===it.productId);
+        const cogs = it.qty * product.avgCost;
+        product.qty -= it.qty;
+        if(r.payType==='cash') cashTotal += it.total;
+        acc.sales.push({id:uid(), date:r.date, productId:product.id, productName:product.name,
+          customer:r.customer, qty:it.qty, unitPrice:it.unitPrice, total:it.total, cogs, payType:r.payType, createdBy:r.userId});
+      }
+      if(cashTotal>0) await pushCustody(r.userId, cashTotal, 'كافتيريا: '+acc.name, 'مبيعات نقدية (بموافقة المدير)');
+      r.status = 'approved';
+      await saveState(); render();
+    });
+  });
+  document.querySelectorAll('[data-reject-sale]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const r = state.pendingCafSales.find(x=>x.id===btn.dataset.rejectSale);
+      if(!r) return;
+      r.status = 'rejected';
+      await saveState(); render();
+    });
+  });
+
+  document.querySelectorAll('[data-req-del-sale]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const s = acc.sales.find(x=>x.id===btn.dataset.reqDelSale);
+      if(!s) return;
+      const summary = `بيع: ${s.productName} ×${fmt(s.qty)} — ${s.customer||'نقدي'} — ${fmt(s.total)}`;
+      await requestDeletion(acc, 'cafSale', s.id, summary);
+    });
+  });
+  document.querySelectorAll('[data-req-del-cafpay]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const p = acc.cafPayments.find(x=>x.id===btn.dataset.reqDelCafpay);
+      if(!p) return;
+      const summary = `تحصيل من ${p.customer} — ${fmt(p.amount)}`;
+      await requestDeletion(acc, 'cafPayment', p.id, summary);
+    });
+  });
+
+  bindDeletionApprovals(acc);
 
   // ── تسعير المنتجات ──
   const savePricesBtn = document.getElementById('saveSellPricesBtn');
@@ -4091,6 +4388,16 @@ function renderStaff(){
           <span class="custody-total" style="color:${bal>=0?'var(--c-green)':'var(--c-red)'}">${fmt(bal)}</span>
         </div>
         ${pending.length>0?`<div style="margin-top:6px;font-size:12px;color:#ffb3a7;font-weight:700;">⚠ ${pending.length} طلب تسليم عهدة في الانتظار — من صفحة "عهدة الموظفين"</div>`:''}
+        <div style="margin-top:12px;padding-top:10px;border-top:1px dashed var(--line);display:flex;flex-direction:column;gap:8px;">
+          <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;cursor:pointer;">
+            <input type="checkbox" data-perm="needsSaleApproval" data-uid="${u.id}" ${u.needsSaleApproval?'checked':''}>
+            🔒 يحتاج موافقة المدير قبل تسجيل بيع الكافيتريا
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;cursor:pointer;">
+            <input type="checkbox" data-perm="canViewCafCustomers" data-uid="${u.id}" ${u.canViewCafCustomers?'checked':''}>
+            👁️ يقدر يشوف حساب عملاء الكافيتريا والمدفوعات
+          </label>
+        </div>
         ` : ''}
       </div>`;
   }).join('');
@@ -4116,6 +4423,15 @@ function renderStaff(){
 }
 
 function bindStaff(){
+  document.querySelectorAll('[data-perm]').forEach(cb=>{
+    cb.addEventListener('change', async ()=>{
+      const u = state.users.find(x=>x.id===cb.dataset.uid);
+      if(!u) return;
+      u[cb.dataset.perm] = cb.checked;
+      await saveState(); render();
+    });
+  });
+
   document.getElementById('addUserBtn').addEventListener('click', async ()=>{
     const name = document.getElementById('newUserName').value.trim();
     const pin  = document.getElementById('newUserPin').value.trim();
