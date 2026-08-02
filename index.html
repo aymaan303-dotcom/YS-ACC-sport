@@ -1053,6 +1053,11 @@ function showEmpConfirm(msg){ empConfirmMsg = msg; }
 function isEmployee(){ return currentUser && currentUser.role === 'employee'; }
 function isAdmin(){ return currentUser && currentUser.role === 'admin'; }
 const EMP_ALLOWED_TYPES = ['general','cafeteria'];
+function empAllowedTypes(){
+  const types = ['general','cafeteria'];
+  if(currentUser && currentUser.canAccessInstallment) types.push('installment');
+  return types;
+}
 
 function ensureUsers(){
   if(!Array.isArray(state.users) || state.users.length===0){
@@ -1095,6 +1100,8 @@ function performDeletion(acc, d){
     acc.expense = acc.expense.filter(x=>x.id!==d.refId);
   } else if(d.kind==='salary'){
     acc.salary = acc.salary.filter(x=>x.id!==d.refId);
+  } else if(d.kind==='installmentPayment'){
+    acc.payments = acc.payments.filter(x=>x.id!==d.refId);
   }
 }
 
@@ -1586,8 +1593,8 @@ function render(){
 
   // ── Account page ──
   let acc = getActive();
-  if(isEmployee() && acc && !EMP_ALLOWED_TYPES.includes(acc.type)){
-    acc = state.accounts.find(a=>EMP_ALLOWED_TYPES.includes(a.type)) || null;
+  if(isEmployee() && acc && !empAllowedTypes().includes(acc.type)){
+    acc = state.accounts.find(a=>empAllowedTypes().includes(a.type)) || null;
     if(acc) state.activeId = acc.id;
   }
   if(topbarTitle) topbarTitle.textContent = acc ? acc.name : 'لوحة التحكم';
@@ -1668,7 +1675,7 @@ function render(){
 function renderSidebar(){
   const list = document.getElementById('sidebarAccounts');
   const icon = a => a.type==='cafeteria' ? '☕' : a.type==='installment' ? '🧾' : a.type==='loans' ? '🤝' : '💼';
-  const visibleAccounts = isEmployee() ? state.accounts.filter(a=>EMP_ALLOWED_TYPES.includes(a.type)) : state.accounts;
+  const visibleAccounts = isEmployee() ? state.accounts.filter(a=>empAllowedTypes().includes(a.type)) : state.accounts;
   list.innerHTML = visibleAccounts.map(a => {
     const net = getNet(a);
     return `
@@ -3089,6 +3096,60 @@ function renderInstallment(acc){
   const sorted = [...acc.deals].sort((a,b)=> (b.date||'').localeCompare(a.date||''));
   const paymentsSorted = [...acc.payments].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
 
+  /* ── شاشة الموظف المبسطة: تسجيل سداد قسط فقط ── */
+  if(isEmployee()){
+    const confirmMsg = empConfirmMsg;
+    empConfirmMsg = '';
+    const activeDeals = acc.deals.filter(d=>dealStatus(acc,d).remaining>0);
+    const dealCards = activeDeals.map(d=>{
+      const st = dealStatus(acc,d);
+      const remainingCount = d.monthlyInstallment>0 ? Math.ceil(st.remaining / d.monthlyInstallment) : 0;
+      return `
+        <div class="balance-card" data-deal-card="${d.id}">
+          <div class="balance-name">👤 ${escapeHtml(d.customerName)}</div>
+          <div class="balance-row"><span>القسط الشهري:</span><span class="amt">${fmt(d.monthlyInstallment)}</span></div>
+          <div class="balance-row big"><span>متبقي:</span><span class="amt neg">${remainingCount} قسط</span></div>
+          <button class="del-btn" style="background:var(--c-yellow);color:#fff;width:100%;text-align:center;margin-top:8px;" data-pick-deal="${d.id}">💳 تسجيل سداد</button>
+        </div>`;
+    }).join('') || `<div class="balance-empty">لا توجد عمليات تقسيط نشطة حاليًا</div>`;
+
+    const myPays = acc.payments.filter(p=>p.createdBy===currentUser.id).sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,15);
+    const myMovesHtml = myPays.length===0 ? '' : `
+      <div class="section" style="padding:16px;margin-top:20px;">
+        <div class="balances-title" style="margin-top:0;">🧾 آخر سداداتك</div>
+        ${myPays.map(p=>{
+          const deal = acc.deals.find(d=>d.id===p.dealId);
+          const badge = myPendingDelBadge('installmentPayment', p.id);
+          return `<div class="settle-req-row">
+            <div class="settle-req-info">سداد: ${escapeHtml(deal?deal.customerName:'—')} — ${fmt(p.amount)} — ${fmtDate(p.date)}</div>
+            ${badge || `<button class="del-btn" data-req-del-instpay="${p.id}">🗑 طلب مسح</button>`}
+          </div>`;
+        }).join('')}
+      </div>`;
+
+    return `
+      <div class="section" style="padding:16px;">
+        <div class="balances-title" style="margin-top:0;">📆 تسجيل سداد قسط</div>
+        <div class="action-panel-inner" style="flex-wrap:wrap;">
+          <input type="date" id="instPayDate" class="date-input" value="${todayStr()}">
+          <select id="instPayDeal" style="flex:1;min-width:140px;border:1.5px solid var(--line);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px;">
+            <option value="">اختر العميل...</option>
+            ${activeDeals.map(d=>`<option value="${d.id}">${escapeHtml(d.customerName)}</option>`).join('')}
+          </select>
+          <input type="number" id="instPayAmount" placeholder="مبلغ القسط المدفوع" step="0.01">
+          <button id="instPaySaveBtn" style="background:var(--c-yellow)">✔ تسجيل السداد</button>
+        </div>
+        <div id="instDealInfo" style="margin-top:10px;font-size:13px;color:var(--ink-soft);"></div>
+      </div>
+
+      <div class="balances-title">👥 عملاء التقسيط النشطين</div>
+      <div class="balances-grid" style="margin-bottom:18px;">${dealCards}</div>
+
+      <div id="empEntryConfirm" class="revcal-summary ok" style="${confirmMsg?'':'display:none;'}margin-top:14px;border-radius:12px;">${escapeHtml(confirmMsg)}</div>
+      ${myMovesHtml}
+    `;
+  }
+
   const overdueList = acc.deals.map(d=>({d, status:dealStatus(acc,d)})).filter(x=>x.status.overdue);
   const remindersHtml = overdueList.length === 0 ? '' : `
     <div class="reminders-box">
@@ -3153,6 +3214,7 @@ function renderInstallment(acc){
   }).join('') || `<div class="balance-empty">أضف موردين لعرض بياناتهم</div>`;
 
   return `
+    ${pendingDeletionsPanel(acc)}
     ${remindersHtml}
 
     <!-- بانر إجمالي القسط الشهري المجمّع -->
@@ -3471,6 +3533,57 @@ function openEditDeal(acc, dealId){
 function bindInstallment(){
   const acc = getActive();
   bindActionBar();
+
+  // ── شاشة الموظف المبسطة: اختيار عميل من البطاقات ──
+  document.querySelectorAll('[data-pick-deal]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const sel = document.getElementById('instPayDeal');
+      if(sel){ sel.value = btn.dataset.pickDeal; sel.dispatchEvent(new Event('change')); }
+      document.getElementById('instPayAmount')?.focus();
+      document.querySelector('.section')?.scrollIntoView({behavior:'smooth', block:'start'});
+    });
+  });
+
+  const instPayDealSel = document.getElementById('instPayDeal');
+  if(instPayDealSel){
+    instPayDealSel.addEventListener('change', ()=>{
+      const info = document.getElementById('instDealInfo');
+      const deal = acc.deals.find(d=>d.id===instPayDealSel.value);
+      if(!info) return;
+      if(!deal){ info.textContent = ''; return; }
+      const st = dealStatus(acc, deal);
+      const remainingCount = deal.monthlyInstallment>0 ? Math.ceil(st.remaining / deal.monthlyInstallment) : 0;
+      info.innerHTML = `القسط الشهري: <b>${fmt(deal.monthlyInstallment)}</b> — متبقي: <b>${remainingCount} قسط</b> (${fmt(st.remaining)})`;
+      const amtInput = document.getElementById('instPayAmount');
+      if(amtInput && !amtInput.value) amtInput.value = deal.monthlyInstallment || '';
+    });
+  }
+
+  document.getElementById('instPaySaveBtn')?.addEventListener('click', async ()=>{
+    const dealId = document.getElementById('instPayDeal').value;
+    const amount = parseFloat(document.getElementById('instPayAmount').value);
+    const date = document.getElementById('instPayDate').value || todayStr();
+    if(!dealId){ alert('اختر العميل أولًا'); return; }
+    if(isNaN(amount) || amount<=0){ alert('اكتب مبلغ صحيح'); return; }
+    const deal = acc.deals.find(d=>d.id===dealId);
+    if(!deal) return;
+    acc.payments.push({id:uid(), date, dealId, amount, createdBy: currentUser?.id||null});
+    if(isEmployee()) await pushCustody(currentUser.id, amount, 'تقسيط: '+acc.name, 'سداد قسط '+deal.customerName);
+    await saveState();
+    if(isEmployee()) showEmpConfirm(`✔ اتسجل سداد ${fmt(amount)} من ${deal.customerName}`);
+    render();
+  });
+
+  // ── الموظف: طلب مسح سداد قسط — يحتاج موافقة المدير ──
+  document.querySelectorAll('[data-req-del-instpay]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const p = acc.payments.find(x=>x.id===btn.dataset.reqDelInstpay);
+      if(!p) return;
+      const deal = acc.deals.find(d=>d.id===p.dealId);
+      await requestDeletion(acc, 'installmentPayment', p.id, `سداد: ${deal?deal.customerName:'—'} — ${fmt(p.amount)}`);
+    });
+  });
+  bindDeletionApprovals(acc);
 
   // ── مسح أقساط عملية (إعادة تصفير المدفوعات) ──
   document.querySelectorAll('[data-clear-deal]').forEach(btn=>{
@@ -4396,6 +4509,10 @@ function renderStaff(){
           <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;cursor:pointer;">
             <input type="checkbox" data-perm="canViewCafCustomers" data-uid="${u.id}" ${u.canViewCafCustomers?'checked':''}>
             👁️ يقدر يشوف حساب عملاء الكافيتريا والمدفوعات
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;cursor:pointer;">
+            <input type="checkbox" data-perm="canAccessInstallment" data-uid="${u.id}" ${u.canAccessInstallment?'checked':''}>
+            📆 يقدر يسجل أقساط التقسيط (شاشة مبسطة)
           </label>
         </div>
         ` : ''}
