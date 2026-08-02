@@ -820,6 +820,17 @@
   .lock-dot{width:13px;height:13px;border-radius:50%;background:#1f4a34;transition:.15s;}
   .lock-dot.filled{background:#ffb100;}
   .lock-pin-error{color:#ffb3a7;font-size:12.5px;min-height:18px;margin-bottom:10px;font-weight:700;}
+  .lock-pin-input{
+    width:100%;background:#163d29;border:1.5px solid #1f4a34;border-radius:12px;
+    padding:14px 16px;color:#eef6ef;font-size:16px;font-family:inherit;text-align:center;
+    letter-spacing:2px;margin-bottom:14px;box-sizing:border-box;
+  }
+  .lock-pin-input:focus{outline:none;border-color:#ffb100;}
+  .lock-login-btn{
+    width:100%;background:linear-gradient(135deg,#1f9e5c,#4fdb93);border:none;border-radius:12px;
+    padding:14px 0;color:#fff;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;
+    margin-bottom:14px;
+  }
   .lock-keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
   .lock-key{
     background:#163d29;border:1.5px solid #1f4a34;border-radius:12px;padding:14px 0;
@@ -909,9 +920,9 @@
     <div id="lockUserList" class="lock-user-list"></div>
     <div id="lockPinArea" class="lock-pin-area" style="display:none;">
       <div class="lock-pin-user" id="lockPinUserName"></div>
-      <div class="lock-pin-dots" id="lockPinDots"></div>
       <div class="lock-pin-error" id="lockPinError"></div>
-      <div class="lock-keypad" id="lockKeypad"></div>
+      <input type="password" id="lockPinInput" class="lock-pin-input" placeholder="اكتب كلمة المرور" autocomplete="off" maxlength="30">
+      <button class="lock-login-btn" id="lockLoginBtn">✔ دخول</button>
       <button class="lock-back-btn" id="lockBackBtn">‹ رجوع</button>
     </div>
   </div>
@@ -1229,46 +1240,29 @@ function renderLockUserList(){
 function openPinEntry(userId){
   lockSelectedUser = state.users.find(u=>u.id===userId);
   if(!lockSelectedUser) return;
-  lockPinBuffer = '';
   document.getElementById('lockUserList').style.display = 'none';
   document.getElementById('lockPinArea').style.display = '';
   document.getElementById('lockPinUserName').textContent = `👤 ${lockSelectedUser.name}`;
   document.getElementById('lockPinError').textContent = '';
-  renderLockDots();
-  renderLockKeypad();
+  const input = document.getElementById('lockPinInput');
+  input.value = '';
   document.getElementById('lockBackBtn').onclick = showLockScreen;
-}
-function renderLockDots(){
-  const wrap = document.getElementById('lockPinDots');
-  const len = Math.max(4, lockPinBuffer.length);
-  wrap.innerHTML = Array.from({length: Math.min(len,8)}).map((_,i)=>
-    `<span class="lock-dot ${i<lockPinBuffer.length?'filled':''}"></span>`).join('');
-}
-function renderLockKeypad(){
-  const keys = ['1','2','3','4','5','6','7','8','9','⌫','0','✔'];
-  document.getElementById('lockKeypad').innerHTML = keys.map(k=>
-    `<button class="lock-key ${k==='✔'||k==='⌫'?'wide':''}" data-key="${k}">${k}</button>`).join('');
-  document.querySelectorAll('.lock-key').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      const k = btn.dataset.key;
-      document.getElementById('lockPinError').textContent = '';
-      if(k==='⌫'){ lockPinBuffer = lockPinBuffer.slice(0,-1); renderLockDots(); return; }
-      if(k==='✔'){ attemptLogin(); return; }
-      if(lockPinBuffer.length<8){ lockPinBuffer += k; }
-      renderLockDots();
-    });
-  });
+  document.getElementById('lockLoginBtn').onclick = attemptLogin;
+  input.onkeydown = (e)=>{ if(e.key==='Enter') attemptLogin(); };
+  setTimeout(()=> input.focus(), 50);
 }
 function attemptLogin(){
   if(!lockSelectedUser) return;
-  if(lockPinBuffer.length>0 && lockPinBuffer === String(lockSelectedUser.pin)){
+  const input = document.getElementById('lockPinInput');
+  const entered = input.value;
+  if(entered.length>0 && entered === String(lockSelectedUser.pin)){
     currentUser = lockSelectedUser;
     hideLockScreen();
     render();
   } else {
-    document.getElementById('lockPinError').textContent = 'الرقم السري غير صحيح';
-    lockPinBuffer = '';
-    renderLockDots();
+    document.getElementById('lockPinError').textContent = 'كلمة المرور غير صحيحة';
+    input.value = '';
+    input.focus();
   }
 }
 function logout(){
@@ -4528,7 +4522,7 @@ function renderStaff(){
       <div class="balances-title" style="margin-top:0;">➕ إضافة موظف جديد</div>
       <div class="action-panel-inner" style="display:flex;flex-wrap:wrap;gap:10px;">
         <input type="text" id="newUserName" placeholder="اسم الموظف">
-        <input type="text" id="newUserPin" placeholder="الرقم السري (أرقام فقط)" inputmode="numeric" maxlength="8">
+        <input type="text" id="newUserPin" placeholder="كلمة المرور (أرقام وحروف)" maxlength="30" autocomplete="off">
         <select id="newUserRole" style="border:1.5px solid var(--line);border-radius:8px;padding:9px 12px;font-family:inherit;">
           <option value="employee">موظف (صلاحية مقيدة)</option>
           <option value="admin">مدير (صلاحية كاملة)</option>
@@ -4553,9 +4547,9 @@ function bindStaff(){
     const name = document.getElementById('newUserName').value.trim();
     const pin  = document.getElementById('newUserPin').value.trim();
     const role = document.getElementById('newUserRole').value;
-    if(!name || !pin){ alert('اكتب الاسم والرقم السري'); return; }
-    if(!/^\d+$/.test(pin)){ alert('الرقم السري لازم يكون أرقام بس'); return; }
-    if(state.users.some(u=>u.pin===pin)){ alert('الرقم السري ده مستخدم بالفعل، اختار رقم تاني'); return; }
+    if(!name || !pin){ alert('اكتب الاسم وكلمة المرور'); return; }
+    if(pin.length<2){ alert('كلمة المرور قصيرة أوي، اكتب على الأقل حرفين/رقمين'); return; }
+    if(state.users.some(u=>u.pin===pin)){ alert('كلمة المرور دي مستخدمة بالفعل، اختار كلمة تانية'); return; }
     state.users.push({id:uid(), name, pin, role});
     await saveState(); render();
   });
@@ -4566,10 +4560,9 @@ function bindStaff(){
       if(!u) return;
       const newName = prompt('اسم المستخدم:', u.name);
       if(newName===null) return;
-      const newPin = prompt('الرقم السري الجديد (اتركه فاضي للإبقاء عليه):', '');
+      const newPin = prompt('كلمة المرور الجديدة (اتركها فاضية للإبقاء عليها):', '');
       if(newName.trim()) u.name = newName.trim();
       if(newPin && newPin.trim()){
-        if(!/^\d+$/.test(newPin.trim())){ alert('الرقم السري لازم يكون أرقام بس'); return; }
         u.pin = newPin.trim();
       }
       await saveState(); render();
