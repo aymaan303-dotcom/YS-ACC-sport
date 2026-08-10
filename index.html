@@ -196,6 +196,19 @@
     .subtab-btn{padding:8px 13px;font-size:12.5px;flex:0 0 auto;}
   }
 
+  /* ── عنصر قابل للطي (آخر حركاتك...) ── */
+  .moves-toggle-btn{
+    width:100%;display:flex;align-items:center;gap:8px;
+    background:none;border:none;cursor:pointer;font-family:inherit;
+    padding:16px;margin:0;text-align:right;
+  }
+  .moves-toggle-btn:hover{background:rgba(255,255,255,.03);}
+  .moves-toggle-badge{
+    background:var(--sidebar-active,#153a26);color:#fff;border-radius:20px;
+    padding:1px 9px;font-size:11.5px;font-weight:700;
+  }
+  .moves-toggle-arrow{margin-right:auto;color:var(--ink-soft);font-size:12px;}
+
   .section-head{
     display:flex;align-items:center;justify-content:space-between;
     padding:13px 18px;border-bottom:1px solid var(--line);background:var(--paper-alt);
@@ -1141,6 +1154,16 @@ function bindSubTabs(){
     });
   });
 }
+function bindUiToggles(){
+  document.querySelectorAll('[data-toggle-key]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const key = el.dataset.toggleKey;
+      uiTabs[key] = (uiTabs[key]==='open') ? 'closed' : 'open';
+      saveUiTabs();
+      render();
+    });
+  });
+}
 function showEmpConfirm(msg){ empConfirmMsg = msg; }
 
 function isEmployee(){ return currentUser && currentUser.role === 'employee'; }
@@ -1737,6 +1760,7 @@ function render(){
   else { bindGeneral(); }
 
   bindSubTabs();
+  bindUiToggles();
 
   if(isAdmin()){
     document.querySelector('[data-action="statement"]').addEventListener('click', ()=>openStatement(acc));
@@ -1995,12 +2019,20 @@ function renderGeneral(acc){
     const confirmMsg = empConfirmMsg;
     empConfirmMsg = '';
 
+    const movesKey = 'moves:'+acc.id;
+    const movesOpen = getUiTab(movesKey, 'closed') === 'open';
+
     const myInc = acc.income.filter(x=>x.createdBy===currentUser.id).sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,15);
     const myExp = acc.expense.filter(x=>x.createdBy===currentUser.id).sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,15);
     const mySal = acc.salary.filter(x=>x.createdBy===currentUser.id).sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,15);
-    const myMovesHtml = (myInc.length===0 && myExp.length===0 && mySal.length===0) ? '' : `
-      <div class="section" style="padding:16px;margin-top:20px;">
-        <div class="balances-title" style="margin-top:0;">🧾 آخر حركاتك</div>
+    const movesCount = myInc.length + myExp.length + mySal.length;
+    const myMovesHtml = movesCount===0 ? '' : `
+      <div class="section" style="padding:0;margin-top:16px;overflow:hidden;">
+        <button type="button" class="balances-title moves-toggle-btn" data-toggle-key="${movesKey}">
+          🧾 آخر حركاتك <span class="moves-toggle-badge">${movesCount}</span>
+          <span class="moves-toggle-arrow">${movesOpen?'▲':'▼'}</span>
+        </button>
+        <div class="moves-toggle-body" style="${movesOpen?'':'display:none;'}padding:0 16px 16px;">
         ${myInc.map(x=>{
           const badge = myPendingDelBadge('income', x.id);
           return `<div class="settle-req-row">
@@ -2022,6 +2054,7 @@ function renderGeneral(acc){
             ${badge || `<button class="del-btn" data-req-del-salary="${x.id}">🗑 طلب مسح</button>`}
           </div>`;
         }).join('')}
+        </div>
       </div>`;
 
     return `
@@ -2068,9 +2101,9 @@ function renderGeneral(acc){
       </div>
 
       <div id="empEntryConfirm" class="revcal-summary ok" style="${confirmMsg?'':'display:none;'}margin-top:14px;border-radius:12px;">${escapeHtml(confirmMsg)}</div>
-      ${myMovesHtml}
 
       ${renderRevenueCalendar(acc, true)}
+      ${myMovesHtml}
     `;
   }
 
@@ -2485,9 +2518,16 @@ function renderCafeteria(acc){
     const myDelReq = (kind, refId)=> state.pendingDeletions.find(d=>d.kind===kind && d.refId===refId && d.status==='pending');
     const mySales = acc.sales.filter(s=>s.createdBy===currentUser.id).sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,15);
     const myPays  = acc.cafPayments.filter(p=>p.createdBy===currentUser.id).sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,15);
-    const myMovesHtml = (mySales.length===0 && myPays.length===0) ? '' : `
-      <div class="section" style="padding:16px;margin-top:20px;">
-        <div class="balances-title" style="margin-top:0;">🧾 آخر حركاتك</div>
+    const cafMovesKey = 'moves:caf:'+acc.id;
+    const cafMovesOpen = getUiTab(cafMovesKey, 'closed') === 'open';
+    const cafMovesCount = mySales.length + myPays.length;
+    const myMovesHtml = cafMovesCount===0 ? '' : `
+      <div class="section" style="padding:0;margin-top:20px;overflow:hidden;">
+        <button type="button" class="balances-title moves-toggle-btn" data-toggle-key="${cafMovesKey}">
+          🧾 آخر حركاتك <span class="moves-toggle-badge">${cafMovesCount}</span>
+          <span class="moves-toggle-arrow">${cafMovesOpen?'▲':'▼'}</span>
+        </button>
+        <div class="moves-toggle-body" style="${cafMovesOpen?'':'display:none;'}padding:0 16px 16px;">
         ${mySales.map(s=>{
           const req = myDelReq('cafSale', s.id);
           return `<div class="settle-req-row">
@@ -2504,6 +2544,7 @@ function renderCafeteria(acc){
                   : `<button class="del-btn" data-req-del-cafpay="${p.id}">🗑 طلب مسح</button>`}
           </div>`;
         }).join('')}
+        </div>
       </div>`;
 
     return `
@@ -3233,9 +3274,15 @@ function renderInstallment(acc){
     }).join('') || `<div class="balance-empty">لا توجد عمليات تقسيط نشطة حاليًا</div>`;
 
     const myPays = acc.payments.filter(p=>p.createdBy===currentUser.id).sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,15);
+    const instMovesKey = 'moves:inst:'+acc.id;
+    const instMovesOpen = getUiTab(instMovesKey, 'closed') === 'open';
     const myMovesHtml = myPays.length===0 ? '' : `
-      <div class="section" style="padding:16px;margin-top:20px;">
-        <div class="balances-title" style="margin-top:0;">🧾 آخر سداداتك</div>
+      <div class="section" style="padding:0;margin-top:20px;overflow:hidden;">
+        <button type="button" class="balances-title moves-toggle-btn" data-toggle-key="${instMovesKey}">
+          🧾 آخر سداداتك <span class="moves-toggle-badge">${myPays.length}</span>
+          <span class="moves-toggle-arrow">${instMovesOpen?'▲':'▼'}</span>
+        </button>
+        <div class="moves-toggle-body" style="${instMovesOpen?'':'display:none;'}padding:0 16px 16px;">
         ${myPays.map(p=>{
           const deal = acc.deals.find(d=>d.id===p.dealId);
           const badge = myPendingDelBadge('installmentPayment', p.id);
@@ -3244,6 +3291,7 @@ function renderInstallment(acc){
             ${badge || `<button class="del-btn" data-req-del-instpay="${p.id}">🗑 طلب مسح</button>`}
           </div>`;
         }).join('')}
+        </div>
       </div>`;
 
     return `
