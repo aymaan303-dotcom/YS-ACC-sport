@@ -329,6 +329,14 @@
     align-items:center;justify-content:center;z-index:960;padding:16px;
   }
   #editDealOverlay.open{display:flex;}
+
+  #editGenericOverlay{
+    position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;
+    align-items:center;justify-content:center;z-index:960;padding:16px;
+  }
+  #editGenericOverlay.open{display:flex;}
+  .edm-clickable{cursor:pointer;}
+  .edm-clickable:hover{text-decoration:underline;color:var(--c-blue);}
   .edit-deal-modal{
     background:var(--paper);border-radius:18px;width:100%;max-width:420px;
     padding:24px;box-shadow:0 20px 40px rgba(0,0,0,.2);
@@ -1000,6 +1008,10 @@
 
 <div id="editDealOverlay">
   <div class="edit-deal-modal" id="editDealModal"></div>
+</div>
+
+<div id="editGenericOverlay">
+  <div class="edit-deal-modal" id="editGenericModal"></div>
 </div>
 
 <div id="custInstallOverlay">
@@ -2225,9 +2237,12 @@ function renderGeneral(acc){
         <thead><tr><th>التاريخ</th><th>البيان</th><th>المبلغ</th><th></th></tr></thead>
         <tbody>${incSorted.length===0?`<tr><td colspan="4" class="empty-row">لا توجد إيرادات بعد</td></tr>`:
           incSorted.map(it=>`<tr>
-            <td class="date-cell">${fmtDate(it.date)}</td><td>${escapeHtml(it.desc)}</td>
+            <td class="date-cell">${fmtDate(it.date)}</td><td><b class="edm-clickable" data-edit-income="${it.id}" title="تعديل">${escapeHtml(it.desc)}</b></td>
             <td class="amt pos">${fmt(it.amount)}</td>
-            <td><button class="del-btn" data-del-income="${it.id}">✕</button></td>
+            <td style="white-space:nowrap;display:flex;gap:4px;padding:8px;">
+                <button class="edit-deal-btn" data-edit-income="${it.id}" title="تعديل">✏️</button>
+                <button class="del-btn" data-del-income="${it.id}">✕</button>
+              </td>
           </tr>`).join('')}
         </tbody>
       </table>
@@ -2254,11 +2269,14 @@ function renderGeneral(acc){
           filtered.map(it=>`<tr>
             <td class="date-cell">${fmtDate(it.date)}</td>
             <td><span class="cat-tag">${escapeHtml(it.cat)}</span></td>
-            <td>${escapeHtml(it.desc)}</td>
+            <td><b class="edm-clickable" data-edit-genexp="${it.src}:${it.id}" title="تعديل">${escapeHtml(it.desc)}</b></td>
             <td class="amt neg">${fmt(it.amount)}</td>
             <td class="amt" style="color:var(--c-red)">${Number(it.deduct||0)>0?fmt(it.deduct):'—'}</td>
             <td class="amt pos">${it.cat==='مرتب'?fmt(Number(it.amount||0)-Number(it.deduct||0)):'—'}</td>
-            <td><button class="del-btn" data-del-exp="${it.src}:${it.id}">✕</button></td>
+            <td style="white-space:nowrap;display:flex;gap:4px;padding:8px;">
+                <button class="edit-deal-btn" data-edit-genexp="${it.src}:${it.id}" title="تعديل">✏️</button>
+                <button class="del-btn" data-del-exp="${it.src}:${it.id}">✕</button>
+              </td>
           </tr>`).join('')}
         </tbody>
       </table>
@@ -2422,6 +2440,17 @@ function bindGeneral(){
     await saveState();
     showEmpConfirm(`✔ اتسجل مصروف "${desc}" بمبلغ ${fmt(amount)}`);
     render();
+  });
+
+  // تعديل إيراد / مصروف / مرتب
+  document.querySelectorAll('[data-edit-income]').forEach(b=>{
+    b.addEventListener('click', ()=> openEditIncome(acc, b.dataset.editIncome));
+  });
+  document.querySelectorAll('[data-edit-genexp]').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      const [src,id]=b.dataset.editGenexp.split(':');
+      openEditGenExpense(acc, src, id);
+    });
   });
 
   // حذف إيراد / مصروف (المدير فقط — مباشر)
@@ -2742,13 +2771,16 @@ function renderCafeteria(acc){
         <tbody>${salSorted.length===0?`<tr><td colspan="8" class="empty-row">لا توجد مبيعات بعد</td></tr>`:
           salSorted.map(s=>`<tr>
             <td class="date-cell">${fmtDate(s.date)}</td>
-            <td><b>${escapeHtml(s.productName)}</b></td>
+            <td><b class="edm-clickable" data-edit-sale="${s.id}" title="تعديل">${escapeHtml(s.productName)}</b></td>
             <td>${escapeHtml(s.customer||'—')}</td>
             <td><span class="cat-tag" style="${s.payType==='credit'?'background:rgba(255,177,0,.15);color:#ffce55':'background:rgba(31,158,92,.15);color:#1f9e5c'}">${s.payType==='credit'?'📋 آجل':'💵 نقدي'}</span></td>
             <td class="amt">${fmt(s.qty)}</td>
             <td class="amt">${fmt(s.unitPrice)}</td>
             <td class="amt pos">${fmt(s.total)}</td>
-            <td><button class="del-btn" data-del-sale="${s.id}">✕</button></td>
+            <td style="white-space:nowrap;display:flex;gap:4px;padding:8px;">
+                <button class="edit-deal-btn" data-edit-sale="${s.id}" title="تعديل">✏️</button>
+                <button class="del-btn" data-del-sale="${s.id}">✕</button>
+              </td>
           </tr>`).join('')}
         </tbody>
       </table>
@@ -2762,7 +2794,7 @@ function renderCafeteria(acc){
         <tbody>${purSorted.length===0?`<tr><td colspan="7" class="empty-row">لا توجد مشتريات بعد</td></tr>`:
           purSorted.map(p=>`<tr>
             <td class="date-cell">${fmtDate(p.date)}</td>
-            <td><b>${escapeHtml(p.productName)}</b></td>
+            <td><b class="edm-clickable" data-edit-purchase="${p.id}" title="تعديل">${escapeHtml(p.productName)}</b></td>
             <td>${escapeHtml(p.supplier||'—')}</td>
             <td class="amt">${fmt(p.qty)}</td>
             <td class="amt">${fmt(p.unitCost)}</td>
@@ -2799,10 +2831,13 @@ function renderCafeteria(acc){
       <table>
         <thead><tr><th>التاريخ</th><th>البيان</th><th>النوع</th><th>المبلغ</th><th></th></tr></thead>
         <tbody>${expSorted.map(e=>`<tr>
-          <td class="date-cell">${fmtDate(e.date)}</td><td>${escapeHtml(e.desc)}</td>
+          <td class="date-cell">${fmtDate(e.date)}</td><td><b class="edm-clickable" data-edit-cafexpense="${e.id}" title="تعديل">${escapeHtml(e.desc)}</b></td>
           <td>${e.kind==='buy'?'مصروف شراء':'مصروف بيع'}</td>
           <td class="amt neg">${fmt(e.amount)}</td>
-          <td><button class="del-btn" data-del-cafexpense="${e.id}">✕</button></td>
+          <td style="white-space:nowrap;display:flex;gap:4px;padding:8px;">
+              <button class="edit-deal-btn" data-edit-cafexpense="${e.id}" title="تعديل">✏️</button>
+              <button class="del-btn" data-del-cafexpense="${e.id}">✕</button>
+            </td>
         </tr>`).join('')}
         </tbody>
       </table>
@@ -2816,9 +2851,12 @@ function renderCafeteria(acc){
         <thead><tr><th>التاريخ</th><th>العميل</th><th>المبلغ</th><th></th></tr></thead>
         <tbody>${[...acc.cafPayments].sort((a,b)=>(b.date||'').localeCompare(a.date||'')).map(p=>`<tr>
           <td class="date-cell">${fmtDate(p.date)}</td>
-          <td><b>${escapeHtml(p.customer)}</b></td>
+          <td><b class="edm-clickable" data-edit-cafpay="${p.id}" title="تعديل">${escapeHtml(p.customer)}</b></td>
           <td class="amt pos">${fmt(p.amount)}</td>
-          <td><button class="del-btn" data-del-cafpay="${p.id}">✕</button></td>
+          <td style="white-space:nowrap;display:flex;gap:4px;padding:8px;">
+              <button class="edit-deal-btn" data-edit-cafpay="${p.id}" title="تعديل">✏️</button>
+              <button class="del-btn" data-del-cafpay="${p.id}">✕</button>
+            </td>
         </tr>`).join('')}
         </tbody>
       </table>
@@ -2900,6 +2938,260 @@ function openEditPurchase(acc, purchaseId){
     await saveState(); render();
   };
   overlay.onclick = e=>{ if(e.target===overlay) overlay.classList.remove('open'); };
+}
+
+/* ---------- نافذة تعديل عامة (تُستخدم لكل الحركات في البرنامج) ---------- */
+function openEditGeneric({title, fields, onSave}){
+  const overlay = document.getElementById('editGenericOverlay');
+  const modal   = document.getElementById('editGenericModal');
+
+  modal.innerHTML = `
+    <div class="edm-title">${title}</div>
+    ${fields.map(f=>{
+      if(f.type==='select'){
+        return `<div class="edm-row"><label class="edm-lbl">${escapeHtml(f.label)}</label>
+          <select class="edm-input" id="${f.id}">
+            ${f.options.map(o=>`<option value="${escapeHtml(String(o.value))}" ${String(o.value)===String(f.value)?'selected':''}>${escapeHtml(o.label)}</option>`).join('')}
+          </select></div>`;
+      }
+      return `<div class="edm-row"><label class="edm-lbl">${escapeHtml(f.label)}</label>
+        <input class="edm-input" id="${f.id}" type="${f.type||'text'}"
+          value="${f.value!=null?escapeHtml(String(f.value)):''}"
+          ${f.step?`step="${f.step}"`:''} ${f.list?`list="${f.list}"`:''}>
+        ${f.datalistHtml||''}
+      </div>`;
+    }).join('')}
+    <div class="edm-actions">
+      <button class="edm-cancel" id="egen-cancel">إلغاء</button>
+      <button class="edm-save" id="egen-save">✔ حفظ التعديلات</button>
+    </div>
+  `;
+
+  overlay.classList.add('open');
+  document.getElementById('egen-cancel').onclick = ()=> overlay.classList.remove('open');
+  document.getElementById('egen-save').onclick = async ()=>{
+    const values = {};
+    fields.forEach(f=> values[f.id] = document.getElementById(f.id).value);
+    const result = await onSave(values);
+    if(result !== false) overlay.classList.remove('open');
+  };
+  overlay.onclick = e=>{ if(e.target===overlay) overlay.classList.remove('open'); };
+}
+
+/* ── تعديل عملية بيع (كافيتريا) ── */
+function openEditSale(acc, saleId){
+  const s = acc.sales.find(x=>x.id===saleId);
+  if(!s) return;
+  openEditGeneric({
+    title: `✏️ تعديل عملية بيع — ${escapeHtml(s.productName)}`,
+    fields: [
+      {id:'esal-date', label:'التاريخ', type:'date', value:s.date},
+      {id:'esal-name', label:'المنتج', type:'text', value:s.productName, list:'esalProductList',
+        datalistHtml:`<datalist id="esalProductList">${acc.products.map(p=>`<option value="${escapeHtml(p.name)}">`).join('')}</datalist>`},
+      {id:'esal-customer', label:'العميل', type:'text', value:s.customer||''},
+      {id:'esal-paytype', label:'طريقة الدفع', type:'select', value:s.payType,
+        options:[{value:'cash',label:'💵 نقدي'},{value:'credit',label:'📋 آجل'}]},
+      {id:'esal-qty', label:'الكمية', type:'number', value:s.qty, step:'0.01'},
+      {id:'esal-price', label:'سعر البيع للوحدة', type:'number', value:s.unitPrice, step:'0.01'},
+    ],
+    onSave: async (v)=>{
+      const date = v['esal-date'] || s.date;
+      const name = v['esal-name'].trim();
+      const customer = v['esal-customer'].trim();
+      const payType = v['esal-paytype'];
+      const qty = parseFloat(v['esal-qty']);
+      const unitPrice = parseFloat(v['esal-price']);
+      if(!name || isNaN(qty) || qty<=0 || isNaN(unitPrice) || unitPrice<0) return false;
+
+      // عكس تأثير البيع القديم على المخزون
+      const oldProduct = acc.products.find(pr=>pr.id===s.productId);
+      if(oldProduct) oldProduct.qty += s.qty;
+
+      let product = acc.products.find(pr=>pr.name.trim()===name);
+      if(!product){ product={id:uid(),name,qty:0,avgCost:0,sellPrice:unitPrice}; acc.products.push(product); }
+
+      if(qty > product.qty){
+        alert(`الكمية المتاحة من "${product.name}" هي ${fmt(product.qty)} فقط`);
+        if(oldProduct) oldProduct.qty -= s.qty; // رجّع الوضع القديم
+        return false;
+      }
+
+      const cogs = qty * product.avgCost;
+      product.qty -= qty;
+      Object.assign(s, {date, productId:product.id, productName:product.name,
+        customer, payType, qty, unitPrice, total:qty*unitPrice, cogs});
+
+      await saveState(); render();
+    }
+  });
+}
+
+/* ── تعديل مصروف كافيتريا ── */
+function openEditCafExpense(acc, id){
+  const e = acc.cafExpenses.find(x=>x.id===id);
+  if(!e) return;
+  openEditGeneric({
+    title:'✏️ تعديل مصروف',
+    fields:[
+      {id:'ecfe-date', label:'التاريخ', type:'date', value:e.date},
+      {id:'ecfe-desc', label:'البيان', type:'text', value:e.desc},
+      {id:'ecfe-kind', label:'النوع', type:'select', value:e.kind,
+        options:[{value:'buy',label:'مصروف شراء'},{value:'sell',label:'مصروف بيع'}]},
+      {id:'ecfe-amount', label:'المبلغ', type:'number', value:e.amount, step:'0.01'},
+    ],
+    onSave: async (v)=>{
+      const date=v['ecfe-date']||e.date, desc=v['ecfe-desc'].trim(), kind=v['ecfe-kind'], amount=parseFloat(v['ecfe-amount']);
+      if(!desc || isNaN(amount)) return false;
+      Object.assign(e, {date, desc, kind, amount});
+      await saveState(); render();
+    }
+  });
+}
+
+/* ── تعديل تحصيل من عميل (كافيتريا) ── */
+function openEditCafPayment(acc, id){
+  const p = acc.cafPayments.find(x=>x.id===id);
+  if(!p) return;
+  openEditGeneric({
+    title:'✏️ تعديل تحصيل',
+    fields:[
+      {id:'ecfp-date', label:'التاريخ', type:'date', value:p.date},
+      {id:'ecfp-customer', label:'العميل', type:'text', value:p.customer},
+      {id:'ecfp-amount', label:'المبلغ', type:'number', value:p.amount, step:'0.01'},
+    ],
+    onSave: async (v)=>{
+      const date=v['ecfp-date']||p.date, customer=v['ecfp-customer'].trim(), amount=parseFloat(v['ecfp-amount']);
+      if(!customer || isNaN(amount) || amount<=0) return false;
+      Object.assign(p, {date, customer, amount});
+      await saveState(); render();
+    }
+  });
+}
+
+/* ── تعديل إيراد (الحساب العام) ── */
+function openEditIncome(acc, id){
+  const it = acc.income.find(x=>x.id===id);
+  if(!it) return;
+  openEditGeneric({
+    title:'✏️ تعديل إيراد',
+    fields:[
+      {id:'einc-date', label:'التاريخ', type:'date', value:it.date},
+      {id:'einc-desc', label:'البيان', type:'text', value:it.desc},
+      {id:'einc-amount', label:'المبلغ', type:'number', value:it.amount, step:'0.01'},
+    ],
+    onSave: async (v)=>{
+      const date=v['einc-date']||it.date, desc=v['einc-desc'].trim(), amount=parseFloat(v['einc-amount']);
+      if(!desc || isNaN(amount)) return false;
+      Object.assign(it, {date, desc, amount});
+      await saveState(); render();
+    }
+  });
+}
+
+/* ── تعديل مصروف/مرتب (الحساب العام) ── */
+function openEditGenExpense(acc, src, id){
+  const arr = src==='salary' ? acc.salary : acc.expense;
+  const it = arr.find(x=>x.id===id);
+  if(!it) return;
+  const fields = [
+    {id:'eexp-date', label:'التاريخ', type:'date', value:it.date},
+    {id:'eexp-cat', label:'النوع', type:'text', value:it.cat},
+    {id:'eexp-desc', label:'البيان', type:'text', value:it.desc},
+    {id:'eexp-amount', label:'المبلغ', type:'number', value:it.amount, step:'0.01'},
+  ];
+  if(src==='salary'){
+    fields.push({id:'eexp-deduct', label:'خصم سلفة', type:'number', value:it.deduct||0, step:'0.01'});
+  }
+  openEditGeneric({
+    title: src==='salary' ? '✏️ تعديل مرتب' : '✏️ تعديل مصروف',
+    fields,
+    onSave: async (v)=>{
+      const date=v['eexp-date']||it.date, cat=v['eexp-cat'].trim()||it.cat,
+        desc=v['eexp-desc'].trim(), amount=parseFloat(v['eexp-amount']);
+      if(!desc || isNaN(amount)) return false;
+      Object.assign(it, {date, cat, desc, amount});
+      if(src==='salary') it.deduct = parseFloat(v['eexp-deduct'])||0;
+      await saveState(); render();
+    }
+  });
+}
+
+/* ── تعديل دفعة سداد قسط (تقسيط) ── */
+function openEditDealPayment(acc, id){
+  const p = acc.payments.find(x=>x.id===id);
+  if(!p) return;
+  openEditGeneric({
+    title:'✏️ تعديل دفعة سداد',
+    fields:[
+      {id:'epay-date', label:'التاريخ', type:'date', value:p.date},
+      {id:'epay-amount', label:'المبلغ', type:'number', value:p.amount, step:'0.01'},
+    ],
+    onSave: async (v)=>{
+      const date=v['epay-date']||p.date, amount=parseFloat(v['epay-amount']);
+      if(isNaN(amount) || amount<=0) return false;
+      Object.assign(p, {date, amount});
+      await saveState(); render();
+    }
+  });
+}
+
+/* ── تعديل سلفة (المستلفين) ── */
+function openEditLoan(acc, id){
+  const l = acc.loans.find(x=>x.id===id);
+  if(!l) return;
+  openEditGeneric({
+    title:'✏️ تعديل سلفة',
+    fields:[
+      {id:'eloan-date', label:'التاريخ', type:'date', value:l.date},
+      {id:'eloan-name', label:'اسم المستلف', type:'text', value:l.borrowerName},
+      {id:'eloan-amount', label:'المبلغ', type:'number', value:l.amount, step:'0.01'},
+    ],
+    onSave: async (v)=>{
+      const date=v['eloan-date']||l.date, borrowerName=v['eloan-name'].trim(), amount=parseFloat(v['eloan-amount']);
+      if(!borrowerName || isNaN(amount) || amount<=0) return false;
+      Object.assign(l, {date, borrowerName, amount});
+      await saveState(); render();
+    }
+  });
+}
+
+/* ── تعديل سداد سلفة ── */
+function openEditRepayment(acc, id){
+  const p = acc.repayments.find(x=>x.id===id);
+  if(!p) return;
+  openEditGeneric({
+    title:'✏️ تعديل سداد سلفة',
+    fields:[
+      {id:'erep-date', label:'التاريخ', type:'date', value:p.date},
+      {id:'erep-amount', label:'المبلغ', type:'number', value:p.amount, step:'0.01'},
+    ],
+    onSave: async (v)=>{
+      const date=v['erep-date']||p.date, amount=parseFloat(v['erep-amount']);
+      if(isNaN(amount) || amount<=0) return false;
+      Object.assign(p, {date, amount});
+      await saveState(); render();
+    }
+  });
+}
+
+/* ── تعديل حركة رأس مال (إيداع/سحب) ── */
+function openEditCapital(acc, id){
+  const e = (acc.capitalEntries||[]).find(x=>x.id===id);
+  if(!e) return;
+  openEditGeneric({
+    title: e.type==='deposit' ? '✏️ تعديل إيداع رأس مال' : '✏️ تعديل سحب من رأس المال',
+    fields:[
+      {id:'ecap-date', label:'التاريخ', type:'date', value:e.date},
+      {id:'ecap-amount', label:'المبلغ', type:'number', value:e.amount, step:'0.01'},
+      {id:'ecap-note', label:'ملاحظة', type:'text', value:e.note||''},
+    ],
+    onSave: async (v)=>{
+      const date=v['ecap-date']||e.date, amount=parseFloat(v['ecap-amount']), note=v['ecap-note'].trim();
+      if(isNaN(amount) || amount<=0) return false;
+      Object.assign(e, {date, amount, note});
+      await saveState(); render();
+    }
+  });
 }
 
 function bindCafeteria(){
@@ -3168,14 +3460,23 @@ function bindCafeteria(){
     if(p){ const pr=acc.products.find(x=>x.id===p.productId); if(pr) pr.qty=Math.max(0,pr.qty-p.qty);
       acc.purchases=acc.purchases.filter(x=>x.id!==p.id); await saveState(); render(); }
   }));
+  document.querySelectorAll('[data-edit-sale]').forEach(btn=>{
+    btn.addEventListener('click', ()=> openEditSale(acc, btn.dataset.editSale));
+  });
   document.querySelectorAll('[data-del-sale]').forEach(btn=>btn.addEventListener('click',async()=>{
     const s=acc.sales.find(x=>x.id===btn.dataset.delSale);
     if(s){ const pr=acc.products.find(x=>x.id===s.productId); if(pr) pr.qty+=s.qty;
       acc.sales=acc.sales.filter(x=>x.id!==s.id); await saveState(); render(); }
   }));
+  document.querySelectorAll('[data-edit-cafexpense]').forEach(btn=>{
+    btn.addEventListener('click', ()=> openEditCafExpense(acc, btn.dataset.editCafexpense));
+  });
   document.querySelectorAll('[data-del-cafexpense]').forEach(btn=>btn.addEventListener('click',async()=>{
     acc.cafExpenses=acc.cafExpenses.filter(x=>x.id!==btn.dataset.delCafexpense); await saveState(); render();
   }));
+  document.querySelectorAll('[data-edit-cafpay]').forEach(btn=>{
+    btn.addEventListener('click', ()=> openEditCafPayment(acc, btn.dataset.editCafpay));
+  });
 }
 
 function renderCart(acc){
@@ -3476,7 +3777,7 @@ function renderInstallment(acc){
               const st=dealStatus(acc,d);
               return `<tr>
                 <td class="date-cell">${fmtDate(d.date)}</td>
-                <td><b>${escapeHtml(d.customerName)}</b></td>
+                <td><b class="edm-clickable" data-edit-deal="${d.id}" title="تعديل">${escapeHtml(d.customerName)}</b></td>
                 <td>${escapeHtml(d.supplierName||'—')}</td>
                 <td class="amt">${fmt(d.totalPrice)}</td>
                 <td class="amt">${fmt(d.downPayment)}</td>
@@ -3504,7 +3805,7 @@ function renderInstallment(acc){
         <tbody>
           ${paymentsSorted.map(p=>{
             const deal=acc.deals.find(d=>d.id===p.dealId);
-            return `<tr><td class="date-cell">${fmtDate(p.date)}</td><td><b>${deal?escapeHtml(deal.customerName):'—'}</b></td><td class="amt pos">${fmt(p.amount)}</td><td><button class="del-btn" data-del-payment="${p.id}">✕</button></td></tr>`;
+            return `<tr><td class="date-cell">${fmtDate(p.date)}</td><td><b class="edm-clickable" data-edit-dealpay="${p.id}" title="تعديل">${deal?escapeHtml(deal.customerName):'—'}</b></td><td class="amt pos">${fmt(p.amount)}</td><td style="white-space:nowrap;display:flex;gap:4px;padding:8px;"><button class="edit-deal-btn" data-edit-dealpay="${p.id}" title="تعديل">✏️</button><button class="del-btn" data-del-payment="${p.id}">✕</button></td></tr>`;
           }).join('') || `<tr><td colspan="4" class="empty-row">لا توجد أقساط محصّلة بعد</td></tr>`}
         </tbody>
       </table>
@@ -3881,6 +4182,9 @@ function bindInstallment(){
     acc.payments.push({id: uid(), date, dealId, amount});
     await saveState(); render();
   });
+  document.querySelectorAll('[data-edit-dealpay]').forEach(btn=>{
+    btn.addEventListener('click', ()=> openEditDealPayment(acc, btn.dataset.editDealpay));
+  });
   document.querySelectorAll('[data-del-payment]').forEach(btn=>{
     btn.addEventListener('click', async ()=>{
       acc.payments = acc.payments.filter(p=>p.id !== btn.dataset.delPayment);
@@ -3980,13 +4284,16 @@ function renderLoans(acc){
               const st=loanStatus(acc,l);
               return `<tr>
                 <td class="date-cell">${fmtDate(l.date)}</td>
-                <td><b>${escapeHtml(l.borrowerName)}</b></td>
+                <td><b class="edm-clickable" data-edit-loan="${l.id}" title="تعديل">${escapeHtml(l.borrowerName)}</b></td>
                 <td class="amt">${fmt(l.amount)}</td>
                 <td class="amt pos">${fmt(st.paid)}</td>
                 <td class="amt" style="font-weight:800;color:${st.remaining<=0?'var(--c-green)':'var(--c-red)'}">
                   ${st.remaining<=0?'✅ مسدّد':fmt(st.remaining)}
                 </td>
-                <td><button class="del-btn" data-del-loan="${l.id}">✕</button></td>
+                <td style="white-space:nowrap;display:flex;gap:4px;padding:8px;">
+                    <button class="edit-deal-btn" data-edit-loan="${l.id}" title="تعديل">✏️</button>
+                    <button class="del-btn" data-del-loan="${l.id}">✕</button>
+                  </td>
               </tr>`;
             }).join('')}
         </tbody>
@@ -4003,9 +4310,12 @@ function renderLoans(acc){
               const loan=acc.loans.find(l=>l.id===p.loanId);
               return `<tr>
                 <td class="date-cell">${fmtDate(p.date)}</td>
-                <td><b>${loan?escapeHtml(loan.borrowerName):'—'}</b></td>
+                <td><b class="edm-clickable" data-edit-repayment="${p.id}" title="تعديل">${loan?escapeHtml(loan.borrowerName):'—'}</b></td>
                 <td class="amt pos">${fmt(p.amount)}</td>
-                <td><button class="del-btn" data-del-repayment="${p.id}">✕</button></td>
+                <td style="white-space:nowrap;display:flex;gap:4px;padding:8px;">
+                    <button class="edit-deal-btn" data-edit-repayment="${p.id}" title="تعديل">✏️</button>
+                    <button class="del-btn" data-del-repayment="${p.id}">✕</button>
+                  </td>
               </tr>`;
             }).join('')}
         </tbody>
@@ -4039,11 +4349,17 @@ function bindLoans(){
     await saveState(); render();
   });
 
+  document.querySelectorAll('[data-edit-loan]').forEach(btn=>{
+    btn.addEventListener('click', ()=> openEditLoan(acc, btn.dataset.editLoan));
+  });
   document.querySelectorAll('[data-del-loan]').forEach(btn=>btn.addEventListener('click',async()=>{
     acc.loans=acc.loans.filter(l=>l.id!==btn.dataset.delLoan);
     acc.repayments=acc.repayments.filter(p=>p.loanId!==btn.dataset.delLoan);
     await saveState(); render();
   }));
+  document.querySelectorAll('[data-edit-repayment]').forEach(btn=>{
+    btn.addEventListener('click', ()=> openEditRepayment(acc, btn.dataset.editRepayment));
+  });
   document.querySelectorAll('[data-del-repayment]').forEach(btn=>btn.addEventListener('click',async()=>{
     acc.repayments=acc.repayments.filter(p=>p.id!==btn.dataset.delRepayment);
     await saveState(); render();
@@ -4367,9 +4683,12 @@ function renderCapital(){
       <tr>
         <td class="date-cell">${fmtDate(e.date)}</td>
         <td>${e.type==='deposit'?'<span class="amt pos">➕ إيداع</span>':'<span class="amt neg">➖ سحب</span>'}</td>
-        <td class="amt ${e.type==='deposit'?'pos':'neg'}">${fmt(e.amount)}</td>
+        <td class="amt ${e.type==='deposit'?'pos':'neg'} edm-clickable" data-edit-cap="${e.id}" data-acc-id="${acc.id}" title="تعديل">${fmt(e.amount)}</td>
         <td>${escapeHtml(e.note||'—')}</td>
-        <td><button class="del-btn" data-del-cap="${e.id}" data-acc-id="${acc.id}">حذف</button></td>
+        <td style="white-space:nowrap;display:flex;gap:4px;padding:8px;">
+            <button class="edit-deal-btn" data-edit-cap="${e.id}" data-acc-id="${acc.id}" title="تعديل">✏️</button>
+            <button class="del-btn" data-del-cap="${e.id}" data-acc-id="${acc.id}">حذف</button>
+          </td>
       </tr>`).join('') || `<tr><td colspan="5" class="empty-row">لا توجد حركات على رأس المال لهذا الحساب بعد</td></tr>`;
 
     return `
@@ -4464,6 +4783,14 @@ function bindCapital(){
       if(!acc.capitalEntries) acc.capitalEntries = [];
       acc.capitalEntries.push({id:uid(), date, type:'withdraw', amount, note});
       await saveState(); render();
+    });
+  });
+
+  document.querySelectorAll('[data-edit-cap]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const acc = state.accounts.find(a=>a.id===btn.dataset.accId);
+      if(!acc) return;
+      openEditCapital(acc, btn.dataset.editCap);
     });
   });
 
